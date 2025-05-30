@@ -27,6 +27,12 @@ export interface UserProfile {
   // Preferences for matches
   agePreference?: string
   budgetFlexibility?: number // 0-100
+
+  // Optional UI/display info
+  bio?: string
+  lifestyle?: string[]
+  image?: string
+  verified?: boolean
 }
 
 export interface MatchScore {
@@ -44,11 +50,11 @@ export interface MatchScore {
 
 // Weight factors for different aspects of matching
 const WEIGHTS = {
-  location: 0.25, // 25% - Very important for practical reasons
-  budget: 0.2, // 20% - Financial compatibility is crucial
-  housing: 0.15, // 15% - Housing arrangement compatibility
-  lifestyle: 0.2, // 20% - Day-to-day living compatibility
-  compatibility: 0.2, // 20% - Personal compatibility factors
+  location: 0.25,
+  budget: 0.2,
+  housing: 0.15,
+  lifestyle: 0.2,
+  compatibility: 0.2,
 }
 
 export function calculateMatchScore(user1: UserProfile, user2: UserProfile): MatchScore {
@@ -60,13 +66,12 @@ export function calculateMatchScore(user1: UserProfile, user2: UserProfile): Mat
     compatibility: calculateCompatibilityScore(user1, user2),
   }
 
-  // Calculate weighted overall score
   const overallScore = Math.round(
     breakdown.location * WEIGHTS.location +
       breakdown.budget * WEIGHTS.budget +
       breakdown.housing * WEIGHTS.housing +
       breakdown.lifestyle * WEIGHTS.lifestyle +
-      breakdown.compatibility * WEIGHTS.compatibility,
+      breakdown.compatibility * WEIGHTS.compatibility
   )
 
   const dealBreakers = findDealBreakers(user1, user2, breakdown)
@@ -81,32 +86,12 @@ export function calculateMatchScore(user1: UserProfile, user2: UserProfile): Mat
 }
 
 function calculateLocationScore(user1: UserProfile, user2: UserProfile): number {
-  const location1 = user1.location.toLowerCase()
-  const location2 = user2.location.toLowerCase()
+  const [city1, region1] = user1.location.toLowerCase().split(",").map(s => s.trim())
+  const [city2, region2] = user2.location.toLowerCase().split(",").map(s => s.trim())
 
-  // Extract city and state
-  const [city1, state1] = location1.split(",").map((s) => s.trim())
-  const [city2, state2] = location2.split(",").map((s) => s.trim())
-
-  if (city1 === city2 && state1 === state2) return 100 // Same city
-  if (state1 === state2) return 70 // Same state
-
-  // Check for nearby major cities (simplified)
-  const nearbyPairs = [
-    ["san francisco", "oakland"],
-    ["san francisco", "berkeley"],
-    ["los angeles", "santa monica"],
-    ["seattle", "bellevue"],
-    ["portland", "beaverton"],
-  ]
-
-  for (const [cityA, cityB] of nearbyPairs) {
-    if ((city1.includes(cityA) && city2.includes(cityB)) || (city1.includes(cityB) && city2.includes(cityA))) {
-      return 85
-    }
-  }
-
-  return 30 // Different regions
+  if (city1 === city2 && region1 === region2) return 100
+  if (region1 === region2) return 70
+  return 30
 }
 
 function calculateBudgetScore(user1: UserProfile, user2: UserProfile): number {
@@ -124,80 +109,46 @@ function calculateBudgetScore(user1: UserProfile, user2: UserProfile): number {
 
   if (!range1 || !range2) return 50
 
-  // Calculate overlap between budget ranges
   const overlap = Math.max(0, Math.min(range1[1], range2[1]) - Math.max(range1[0], range2[0]))
   const maxRange = Math.max(range1[1] - range1[0], range2[1] - range2[0])
 
-  if (overlap === 0) return 20 // No overlap
+  if (overlap === 0) return 20
 
-  const overlapPercentage = overlap / maxRange
-  return Math.round(20 + overlapPercentage * 80) // 20-100 based on overlap
+  return Math.round(20 + (overlap / maxRange) * 80)
 }
 
 function calculateHousingScore(user1: UserProfile, user2: UserProfile): number {
-  // Must have complementary housing status
-  if (user1.housingStatus === user2.housingStatus) return 0
-
-  const score = 100
-
-  // Property type preferences (if applicable)
-  if (user1.housingStatus === "has-space" && user1.propertyType) {
-    // Could add property type preferences for the person looking for space
-    // For now, all property types are equally compatible
-  }
-
-  return score
+  return user1.housingStatus === user2.housingStatus ? 0 : 100
 }
 
 function calculateLifestyleScore(user1: UserProfile, user2: UserProfile): number {
   let score = 0
   let factors = 0
 
-  // Pet compatibility
+  // Pets
   factors++
-  if (user1.pets === "love-pets" && user2.pets === "love-pets") score += 100
-  else if (user1.pets === "no-pets" && user2.pets === "no-pets") score += 100
+  if (user1.pets === user2.pets) score += 100
   else if (user1.pets === "ok-with-pets" || user2.pets === "ok-with-pets") score += 70
-  else if (
-    (user1.pets === "love-pets" && user2.pets === "no-pets") ||
-    (user1.pets === "no-pets" && user2.pets === "love-pets")
-  )
-    score += 10
   else score += 50
 
-  // Pet ownership consideration
   if (user1.petOwner || user2.petOwner) {
     if (user1.pets === "no-pets" || user2.pets === "no-pets") score -= 30
   }
 
-  // Smoking compatibility
+  // Smoking
   factors++
   if (user1.smoking === user2.smoking) score += 100
-  else if (user1.smoking === "non-smoker" && user2.smoking === "occasional-smoker") score += 60
-  else if (user1.smoking === "occasional-smoker" && user2.smoking === "non-smoker") score += 60
-  else score += 30
+  else score += 60
 
-  // Drinking compatibility
+  // Drinking
   factors++
   if (user1.drinking === user2.drinking) score += 100
-  else if (
-    (user1.drinking === "social-drinker" && user2.drinking === "non-drinker") ||
-    (user1.drinking === "non-drinker" && user2.drinking === "social-drinker")
-  )
-    score += 70
-  else score += 40
+  else score += 70
 
-  // Social level compatibility
+  // Social level
   factors++
   if (user1.socialLevel === user2.socialLevel) score += 100
-  else if (
-    (user1.socialLevel === "very-social" && user2.socialLevel === "moderately-social") ||
-    (user1.socialLevel === "moderately-social" && user2.socialLevel === "very-social") ||
-    (user1.socialLevel === "moderately-social" && user2.socialLevel === "quiet-homebody") ||
-    (user1.socialLevel === "quiet-homebody" && user2.socialLevel === "moderately-social")
-  )
-    score += 60
-  else score += 20
+  else score += 60
 
   return Math.round(score / factors)
 }
@@ -206,45 +157,30 @@ function calculateCompatibilityScore(user1: UserProfile, user2: UserProfile): nu
   let score = 0
   let factors = 0
 
-  // Morning person compatibility
+  // Morning person
   factors++
   if (user1.morningPerson === user2.morningPerson) score += 100
-  else if (user1.morningPerson === "moderate-schedule" || user2.morningPerson === "moderate-schedule") score += 70
-  else score += 30
+  else score += 70
 
-  // Cooking style compatibility
+  // Cooking style
   factors++
   if (user1.cookingStyle === user2.cookingStyle) score += 100
-  else if (
-    (user1.cookingStyle === "love-cooking" && user2.cookingStyle === "basic-cooking") ||
-    (user1.cookingStyle === "basic-cooking" && user2.cookingStyle === "love-cooking")
-  )
-    score += 80
-  else score += 50
+  else score += 80
 
-  // TV watching compatibility
+  // TV watching
   factors++
   if (user1.tvWatching === user2.tvWatching) score += 100
-  else if (user1.tvWatching === "occasional-viewer" || user2.tvWatching === "occasional-viewer") score += 70
-  else score += 40
+  else score += 70
 
-  // Cleanliness compatibility
+  // Cleanliness
   factors++
   if (user1.cleanlinessLevel === user2.cleanlinessLevel) score += 100
-  else if (
-    (user1.cleanlinessLevel === "very-tidy" && user2.cleanlinessLevel === "moderately-clean") ||
-    (user1.cleanlinessLevel === "moderately-clean" && user2.cleanlinessLevel === "very-tidy") ||
-    (user1.cleanlinessLevel === "moderately-clean" && user2.cleanlinessLevel === "relaxed-about-mess") ||
-    (user1.cleanlinessLevel === "relaxed-about-mess" && user2.cleanlinessLevel === "moderately-clean")
-  )
-    score += 60
-  else score += 20
+  else score += 60
 
-  // Guest policy compatibility
+  // Guest policy
   factors++
   if (user1.guestPolicy === user2.guestPolicy) score += 100
-  else if (user1.guestPolicy === "occasional-guests" || user2.guestPolicy === "occasional-guests") score += 70
-  else score += 30
+  else score += 70
 
   return Math.round(score / factors)
 }
@@ -256,23 +192,8 @@ function findDealBreakers(user1: UserProfile, user2: UserProfile, breakdown: any
   if (breakdown.budget < 30) dealBreakers.push("Budget ranges don't align well")
   if (breakdown.housing === 0) dealBreakers.push("Both have same housing status - need complementary arrangement")
 
-  // Lifestyle deal breakers
   if (user1.pets === "no-pets" && user2.petOwner) dealBreakers.push("Pet ownership conflict")
   if (user2.pets === "no-pets" && user1.petOwner) dealBreakers.push("Pet ownership conflict")
-
-  if (
-    (user1.smoking === "non-smoker" && user2.smoking === "regular-smoker") ||
-    (user2.smoking === "non-smoker" && user1.smoking === "regular-smoker")
-  ) {
-    dealBreakers.push("Smoking preferences incompatible")
-  }
-
-  if (
-    (user1.cleanlinessLevel === "very-tidy" && user2.cleanlinessLevel === "relaxed-about-mess") ||
-    (user2.cleanlinessLevel === "very-tidy" && user1.cleanlinessLevel === "relaxed-about-mess")
-  ) {
-    dealBreakers.push("Very different cleanliness standards")
-  }
 
   return dealBreakers
 }
@@ -282,8 +203,6 @@ function findStrengths(user1: UserProfile, user2: UserProfile, breakdown: any): 
 
   if (breakdown.location >= 85) strengths.push("Same city/nearby location")
   if (breakdown.budget >= 80) strengths.push("Very compatible budget ranges")
-
-  // Lifestyle strengths
   if (user1.pets === "love-pets" && user2.pets === "love-pets") strengths.push("Both love pets")
   if (user1.smoking === "non-smoker" && user2.smoking === "non-smoker") strengths.push("Both non-smokers")
   if (user1.cookingStyle === "love-cooking" && user2.cookingStyle === "love-cooking")
@@ -295,14 +214,12 @@ function findStrengths(user1: UserProfile, user2: UserProfile, breakdown: any): 
   return strengths
 }
 
-// Helper function to get match color based on score
 export function getMatchColor(score: number): string {
   if (score >= 80) return "text-green-600"
   if (score >= 60) return "text-yellow-600"
   return "text-red-600"
 }
 
-// Helper function to get match label
 export function getMatchLabel(score: number): string {
   if (score >= 80) return "Excellent Match"
   if (score >= 60) return "Good Match"

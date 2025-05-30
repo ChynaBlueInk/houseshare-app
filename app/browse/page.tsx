@@ -12,21 +12,22 @@ import Link from "next/link"
 import { calculateMatchScore, getMatchColor, getMatchLabel, type UserProfile } from "@/lib/matching"
 import { MatchDetailsModal } from "@/components/match-details-modal"
 
-// Mock data for profiles
+// Mock data for profiles (NZ-specific placeholders)
+// ⚠️ This is fake filler data. It will be replaced by live AWS database entries in Phase One.
+
 const profiles: UserProfile[] = [
   {
     id: 1,
     name: "Margaret Thompson",
     age: "62",
-    location: "Portland, OR",
+    location: "Napier, Hawke's Bay",
     housingStatus: "has-space",
     propertyType: "House",
-    monthlyBudget: "800-1200",
-    bio: "Retired teacher looking for a friendly companion to share my cozy 3-bedroom home. I love gardening, reading, and cooking. Non-smoker, social drinker, and very pet-friendly!",
+    monthlyBudget: "$250-350",
+    bio: "Retired teacher looking for a friendly companion to share my cozy 3-bedroom home in Napier. I love gardening, reading, and cooking. Non-smoker, social drinker, and very pet-friendly!",
     lifestyle: ["Non-smoker", "Pet-friendly", "Social drinker", "Early bird", "Love cooking"],
     image: "/placeholder.svg?height=200&width=200",
     verified: true,
-    // Questionnaire answers
     pets: "love-pets",
     petOwner: true,
     smoking: "non-smoker",
@@ -43,10 +44,10 @@ const profiles: UserProfile[] = [
     id: 2,
     name: "Susan Chen",
     age: "58",
-    location: "Seattle, WA",
+    location: "Tauranga, Bay of Plenty",
     housingStatus: "looking-for-space",
-    monthlyBudget: "1200-1600",
-    bio: "Recently divorced and looking for a fresh start. I'm a part-time consultant who enjoys yoga, hiking, and quiet evenings. Looking for a peaceful home environment.",
+    monthlyBudget: "$300-450",
+    bio: "Recently divorced and looking for a fresh start in Tauranga. I'm a part-time consultant who enjoys yoga, hiking, and quiet evenings. Looking for a peaceful home environment.",
     lifestyle: ["Non-smoker", "Non-drinker", "Quiet", "Moderate schedule", "Tidy"],
     image: "/placeholder.svg?height=200&width=200",
     verified: true,
@@ -66,11 +67,11 @@ const profiles: UserProfile[] = [
     id: 3,
     name: "Linda Rodriguez",
     age: "55",
-    location: "San Francisco, CA",
+    location: "Wellington Central",
     housingStatus: "has-space",
     propertyType: "Condo",
-    monthlyBudget: "1600-2000",
-    bio: "Working professional with a beautiful condo near the bay. I travel frequently for work, so looking for someone responsible to share the space. Love entertaining friends!",
+    monthlyBudget: "$450-600",
+    bio: "Working professional with a beautiful condo in Wellington. I travel frequently for work, so looking for someone responsible to share the space. Love entertaining friends!",
     lifestyle: ["Non-smoker", "Social drinker", "Very social", "Night owl", "Guests welcome"],
     image: "/placeholder.svg?height=200&width=200",
     verified: true,
@@ -90,10 +91,10 @@ const profiles: UserProfile[] = [
     id: 4,
     name: "Carol Williams",
     age: "67",
-    location: "Austin, TX",
+    location: "Timaru, Canterbury",
     housingStatus: "looking-for-space",
-    monthlyBudget: "500-800",
-    bio: "Retired nurse seeking a quiet, comfortable place to call home. I'm very clean, respectful, and enjoy reading, crafts, and volunteering at the local animal shelter.",
+    monthlyBudget: "$200-300",
+    bio: "Retired nurse seeking a quiet, comfortable place in Timaru. I'm very clean, respectful, and enjoy reading, crafts, and volunteering at the local animal shelter.",
     lifestyle: ["Non-smoker", "Non-drinker", "Pet-friendly", "Early bird", "Very tidy"],
     image: "/placeholder.svg?height=200&width=200",
     verified: true,
@@ -113,11 +114,11 @@ const profiles: UserProfile[] = [
     id: 5,
     name: "Patricia Davis",
     age: "61",
-    location: "Denver, CO",
+    location: "Auckland, North Shore",
     housingStatus: "has-space",
     propertyType: "Townhouse",
-    monthlyBudget: "800-1200",
-    bio: "Empty nester with extra space in my townhouse. I enjoy cooking, wine tasting, and hosting book club meetings. Looking for someone who appreciates good conversation!",
+    monthlyBudget: "$350-500",
+    bio: "Empty nester with extra space in my North Shore townhouse. I enjoy cooking, wine tasting, and hosting book club meetings. Looking for someone who appreciates good conversation!",
     lifestyle: ["Non-smoker", "Social drinker", "Love cooking", "Moderately social", "Guests welcome"],
     image: "/placeholder.svg?height=200&width=200",
     verified: true,
@@ -137,10 +138,10 @@ const profiles: UserProfile[] = [
     id: 6,
     name: "Barbara Johnson",
     age: "54",
-    location: "Phoenix, AZ",
+    location: "Nelson, Tasman",
     housingStatus: "looking-for-space",
-    monthlyBudget: "800-1200",
-    bio: "Freelance writer looking for a creative, inspiring environment. I work from home and appreciate quiet spaces. Love cats, yoga, and organic gardening.",
+    monthlyBudget: "$300-400",
+    bio: "Freelance writer looking for a creative, inspiring environment in Nelson. I work from home and appreciate quiet spaces. Love cats, yoga, and organic gardening.",
     lifestyle: ["Non-smoker", "Occasional drinker", "Pet owner", "Moderate schedule", "Quiet"],
     image: "/placeholder.svg?height=200&width=200",
     verified: true,
@@ -157,6 +158,7 @@ const profiles: UserProfile[] = [
     guestPolicy: "rare-guests",
   },
 ]
+
 
 // Mock current user for matching calculations
 const currentUser: UserProfile = {
@@ -195,7 +197,7 @@ export default function BrowseProfiles() {
     .filter((profile) => {
       const matchesSearch =
         profile.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        profile.bio.toLowerCase().includes(searchTerm.toLowerCase())
+(profile.bio?.toLowerCase() ?? "").includes(searchTerm.toLowerCase())
       const matchesLocation = !locationFilter || profile.location.includes(locationFilter)
       const matchesHousing = !housingFilter || profile.housingStatus === housingFilter
       const matchesBudget = !budgetFilter || profile.monthlyBudget === budgetFilter
