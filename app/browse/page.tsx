@@ -204,7 +204,7 @@ const [selectedMatch, setSelectedMatch] = useState<{ profile: UserProfile; match
       const matchesSearch =
         profile.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
 (profile.bio?.toLowerCase() ?? "").includes(searchTerm.toLowerCase())
-      const matchesLocation = !locationFilter || profile.location.includes(locationFilter)
+const matchesLocation = locationFilter === "all" || profile.location.includes(locationFilter)
       const matchesHousing = !housingFilter || profile.housingStatus === housingFilter
 const profileBudgetRange = parseBudgetRange(profile.monthlyBudget)
 const min = minBudget ? parseInt(minBudget) : 0
@@ -260,7 +260,7 @@ const matchesBudget = profileBudgetRange[1] >= min && profileBudgetRange[0] <= m
     <SelectValue placeholder="Location" />
   </SelectTrigger>
   <SelectContent>
-    <SelectItem value="">All Locations</SelectItem>
+<SelectItem value="all">All Locations</SelectItem>
     <SelectItem value="Napier">Napier, Hawke's Bay</SelectItem>
     <SelectItem value="Tauranga">Tauranga, Bay of Plenty</SelectItem>
     <SelectItem value="Wellington">Wellington Central</SelectItem>
@@ -274,7 +274,7 @@ const matchesBudget = profileBudgetRange[1] >= min && profileBudgetRange[0] <= m
     <SelectValue placeholder="Min Budget" />
   </SelectTrigger>
   <SelectContent>
-    <SelectItem value="">Any</SelectItem>
+    <SelectItem value="All">Any</SelectItem>
     <SelectItem value="200">200</SelectItem>
     <SelectItem value="250">250</SelectItem>
     <SelectItem value="300">300</SelectItem>
@@ -288,7 +288,7 @@ const matchesBudget = profileBudgetRange[1] >= min && profileBudgetRange[0] <= m
     <SelectValue placeholder="Max Budget" />
   </SelectTrigger>
   <SelectContent>
-    <SelectItem value="">Any</SelectItem>
+    <SelectItem value="All">Any</SelectItem>
     <SelectItem value="300">300</SelectItem>
     <SelectItem value="350">350</SelectItem>
     <SelectItem value="400">400</SelectItem>
