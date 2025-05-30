@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Heart, MessageCircle, MapPin, Home, Filter, Search } from "lucide-react"
 import Link from "next/link"
-import { calculateMatchScore, getMatchColor, getMatchLabel, type UserProfile } from "@/lib/matching"
+import { calculateMatchScore, getMatchColor, getMatchLabel, type UserProfile, type MatchScore } from "@/lib/matching"
 import { MatchDetailsModal } from "@/components/match-details-modal"
 
 // Mock data for profiles (NZ-specific placeholders)
@@ -165,7 +165,7 @@ const currentUser: UserProfile = {
   id: 0,
   name: "Current User",
   age: "58",
-  location: "Portland, OR",
+  location: "Napier , Hawke's Bay",
   housingStatus: "looking-for-space",
   monthlyBudget: "800-1200",
   pets: "love-pets",
@@ -180,13 +180,19 @@ const currentUser: UserProfile = {
   cleanlinessLevel: "moderately-clean",
   guestPolicy: "occasional-guests",
 }
+function parseBudgetRange(range: string): [number, number] {
+  const match = range.match(/\$?(\d+)[^\d]+(\d+)/)
+  if (!match) return [0, Infinity]
+  return [parseInt(match[1]), parseInt(match[2])]
+}
 
 export default function BrowseProfiles() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [locationFilter, setLocationFilter] = useState("")
-  const [housingFilter, setHousingFilter] = useState("")
-  const [budgetFilter, setBudgetFilter] = useState("")
-  const [selectedMatch, setSelectedMatch] = useState<{ profile: any; matchScore: any } | null>(null)
+const [searchTerm, setSearchTerm] = useState("")
+const [locationFilter, setLocationFilter] = useState("")
+const [housingFilter, setHousingFilter] = useState("")
+const [minBudget, setMinBudget] = useState("")
+const [maxBudget, setMaxBudget] = useState("")
+const [selectedMatch, setSelectedMatch] = useState<{ profile: UserProfile; matchScore: MatchScore } | null>(null)
 
   const profilesWithMatches = profiles.map((profile) => {
     const matchScore = calculateMatchScore(currentUser, profile)
@@ -200,7 +206,10 @@ export default function BrowseProfiles() {
 (profile.bio?.toLowerCase() ?? "").includes(searchTerm.toLowerCase())
       const matchesLocation = !locationFilter || profile.location.includes(locationFilter)
       const matchesHousing = !housingFilter || profile.housingStatus === housingFilter
-      const matchesBudget = !budgetFilter || profile.monthlyBudget === budgetFilter
+const profileBudgetRange = parseBudgetRange(profile.monthlyBudget)
+const min = minBudget ? parseInt(minBudget) : 0
+const max = maxBudget ? parseInt(maxBudget) : Infinity
+const matchesBudget = profileBudgetRange[1] >= min && profileBudgetRange[0] <= max
 
       return matchesSearch && matchesLocation && matchesHousing && matchesBudget
     })
@@ -246,20 +255,49 @@ export default function BrowseProfiles() {
                   className="w-full"
                 />
               </div>
-              <Select value={locationFilter} onValueChange={setLocationFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Locations</SelectItem>
-                  <SelectItem value="Portland">Portland, OR</SelectItem>
-                  <SelectItem value="Seattle">Seattle, WA</SelectItem>
-                  <SelectItem value="San Francisco">San Francisco, CA</SelectItem>
-                  <SelectItem value="Austin">Austin, TX</SelectItem>
-                  <SelectItem value="Denver">Denver, CO</SelectItem>
-                  <SelectItem value="Phoenix">Phoenix, AZ</SelectItem>
-                </SelectContent>
-              </Select>
+<Select value={locationFilter} onValueChange={setLocationFilter}>
+  <SelectTrigger>
+    <SelectValue placeholder="Location" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="">All Locations</SelectItem>
+    <SelectItem value="Napier">Napier, Hawke's Bay</SelectItem>
+    <SelectItem value="Tauranga">Tauranga, Bay of Plenty</SelectItem>
+    <SelectItem value="Wellington">Wellington Central</SelectItem>
+    <SelectItem value="Timaru">Timaru, Canterbury</SelectItem>
+    <SelectItem value="Auckland">Auckland, North Shore</SelectItem>
+    <SelectItem value="Nelson">Nelson, Tasman</SelectItem>
+  </SelectContent>
+</Select>
+<Select value={minBudget} onValueChange={setMinBudget}>
+  <SelectTrigger>
+    <SelectValue placeholder="Min Budget" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="">Any</SelectItem>
+    <SelectItem value="200">200</SelectItem>
+    <SelectItem value="250">250</SelectItem>
+    <SelectItem value="300">300</SelectItem>
+    <SelectItem value="350">350</SelectItem>
+    <SelectItem value="400">400</SelectItem>
+  </SelectContent>
+</Select>
+
+<Select value={maxBudget} onValueChange={setMaxBudget}>
+  <SelectTrigger>
+    <SelectValue placeholder="Max Budget" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="">Any</SelectItem>
+    <SelectItem value="300">300</SelectItem>
+    <SelectItem value="350">350</SelectItem>
+    <SelectItem value="400">400</SelectItem>
+    <SelectItem value="450">450</SelectItem>
+    <SelectItem value="500">500</SelectItem>
+    <SelectItem value="600">600</SelectItem>
+    <SelectItem value="700">700</SelectItem>
+  </SelectContent>
+</Select>              
               <Select value={housingFilter} onValueChange={setHousingFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Housing Status" />
@@ -270,18 +308,7 @@ export default function BrowseProfiles() {
                   <SelectItem value="looking-for-space">Looking for Space</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={budgetFilter} onValueChange={setBudgetFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Budget" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Budgets</SelectItem>
-                  <SelectItem value="$500-800">$500-800</SelectItem>
-                  <SelectItem value="$800-1200">$800-1200</SelectItem>
-                  <SelectItem value="$1200-1600">$1200-1600</SelectItem>
-                  <SelectItem value="$1600-2000">$1600-2000</SelectItem>
-                </SelectContent>
-              </Select>
+              
             </div>
           </CardContent>
         </Card>
@@ -369,14 +396,14 @@ export default function BrowseProfiles() {
                 )}
 
                 <div className="flex flex-wrap gap-1">
-                  {profile.lifestyle.slice(0, 3).map((trait, index) => (
+                  {profile.lifestyle?.slice(0, 3).map((trait, index) => (
                     <Badge key={index} variant="secondary" className="text-xs">
                       {trait}
                     </Badge>
                   ))}
-                  {profile.lifestyle.length > 3 && (
+{Array.isArray(profile.lifestyle) && profile.lifestyle.length > 3 && (
                     <Badge variant="secondary" className="text-xs">
-                      +{profile.lifestyle.length - 3} more
++{(profile.lifestyle?.length ?? 0) - 3} more
                     </Badge>
                   )}
                 </div>
@@ -410,12 +437,14 @@ export default function BrowseProfiles() {
               <h3 className="text-lg font-semibold mb-2">No profiles found</h3>
               <p className="text-gray-600 mb-4">Try adjusting your search criteria or filters to find more matches.</p>
               <Button
-                onClick={() => {
-                  setSearchTerm("")
-                  setLocationFilter("")
-                  setHousingFilter("")
-                  setBudgetFilter("")
-                }}
+            onClick={() => {
+  setSearchTerm("")
+  setLocationFilter("")
+  setHousingFilter("")
+  setMinBudget("")
+  setMaxBudget("")
+}}
+
               >
                 Clear Filters
               </Button>
