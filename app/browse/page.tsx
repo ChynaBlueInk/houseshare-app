@@ -234,6 +234,16 @@ const matchesBudget = profileBudgetRange[1] >= min && profileBudgetRange[0] <= m
           </div>
         </div>
       </header>
+{/* Home Image Section */}
+<section className="px-4">
+  <div className="container mx-auto max-w-5xl">
+    <img
+      src="/Browse.png"
+      alt="Women laughing and enjoying wine together"
+      className="rounded-xl shadow-lg w-full object-cover"
+    />
+  </div>
+</section>
 
       <div className="container mx-auto px-4 py-8">
         {/* Search and Filters */}

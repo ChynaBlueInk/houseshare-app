@@ -34,7 +34,16 @@ export default function FAQ() {
             Find answers to common questions about ShareSpace and housesharing for women 50+
           </p>
         </div>
-
+{/* Home Image Section */}
+<section className="px-4">
+  <div className="container mx-auto max-w-5xl">
+    <img
+      src="/FAQ.png"
+      alt="Women laughing and enjoying coffee together"
+      className="rounded-xl shadow-lg w-full object-cover"
+    />
+  </div>
+</section>
         {/* FAQ Sections */}
         <div className="space-y-8">
           {/* Getting Started */}

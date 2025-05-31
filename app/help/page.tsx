@@ -172,7 +172,16 @@ const filteredArticles = articles.filter(
             </CardContent>
           </Card>
         </div>
-
+{/* Home Image Section */}
+<section className="px-4">
+  <div className="container mx-auto max-w-5xl">
+    <img
+      src="/Help.png"
+      alt="Women laughing and enjoying wine together"
+      className="rounded-xl shadow-lg w-full object-cover"
+    />
+  </div>
+</section>
         {/* Popular Articles */}
   <Card className="mb-12">
   <CardHeader>

@@ -55,6 +55,16 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+{/* Home Image Section */}
+<section className="px-4">
+  <div className="container mx-auto max-w-5xl">
+    <img
+      src="/HomeImage.png"
+      alt="Women laughing and enjoying wine together"
+      className="rounded-xl shadow-lg w-full object-cover"
+    />
+  </div>
+</section>
 
       {/* Features */}
       <section className="py-16 px-4 bg-white">

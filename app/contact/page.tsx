@@ -59,7 +59,16 @@ export default function Contact() {
             We're here to help! Reach out with any questions, concerns, or feedback about ShareSpace
           </p>
         </div>
-
+{/* Home Image Section */}
+<section className="px-4">
+  <div className="container mx-auto max-w-5xl">
+    <img
+      src="/Contact.png"
+      alt="Women laughing and enjoying wine together"
+      className="rounded-xl shadow-lg w-full object-cover"
+    />
+  </div>
+</section>
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Contact Form */}
           <div className="lg:col-span-2">
