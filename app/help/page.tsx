@@ -1,10 +1,34 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Home, Search, Book, MessageCircle, Shield, Users, FileText, Phone } from "lucide-react"
+import { useState } from "react"
 
 export default function HelpCenter() {
+  
+// const [searchTerm, setSearchTerm] = useState("")
+/*
+const articles = [
+  {
+    title: "How to write an attractive profile",
+    description: "Tips for creating a profile that gets responses",
+    href: "/help/profile-tips",
+  },
+  // ... more articles
+]
+
+const filteredArticles = articles.filter(
+  (article) =>
+    article.title.toLowerCase().includes(searchTerm) ||
+    article.description.toLowerCase().includes(searchTerm)
+)
+*/
+
+
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white">
       {/* Header */}
@@ -23,6 +47,7 @@ export default function HelpCenter() {
             </Button>
           </div>
         </div>
+       
       </header>
 
       <div className="container mx-auto px-4 py-12 max-w-6xl">
@@ -32,15 +57,22 @@ export default function HelpCenter() {
           <p className="text-xl text-gray-600 mb-8 leading-relaxed">
             Find answers, get support, and learn everything you need to know about ShareSpace
           </p>
+        </div> {/* closes .text-center mb-16 */}
+      </div>   {/* closes .container mx-auto */}
 
           {/* Search Bar */}
-          <div className="max-w-2xl mx-auto relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input placeholder="Search for help articles, guides, and FAQs..." className="pl-10 py-6 text-lg" />
-          </div>
-        </div>
+ {/* Search Bar — temporarily removed */}
+{/* 
+<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+<Input
+  placeholder="Search for help articles, guides, and FAQs..."
+  className="pl-10 py-6 text-lg"
+  value={searchTerm}
+  onChange={(e) => setSearchTerm(e.target.value.toLowerCase())}
+/>
+*/}
 
-        {/* Quick Help Categories */}
+      {/* Help Categories */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader>
@@ -103,14 +135,15 @@ export default function HelpCenter() {
             <CardHeader>
               <Home className="h-8 w-8 text-rose-600 mb-2" />
               <CardTitle>Housing Arrangements</CardTitle>
-              <CardDescription>Everything about different types of housesharing</CardDescription>
+              <CardDescription>Everything about types of housesharing and legal considerations</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li>• Types of arrangements</li>
-                <li>• Legal considerations</li>
+                <li>
+                  • <Link href="/legal/boarders" className="underline text-blue-600">Boarders & NZ Benefit Rules</Link>
+                </li>
                 <li>• Setting house rules</li>
-                <li>• Handling conflicts</li>
+                <li>• Conflict resolution</li>
               </ul>
               <Button variant="outline" className="w-full mt-4" asChild>
                 <Link href="/help/housing">Learn More</Link>
@@ -118,24 +151,7 @@ export default function HelpCenter() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader>
-              <FileText className="h-8 w-8 text-rose-600 mb-2" />
-              <CardTitle>Account & Billing</CardTitle>
-              <CardDescription>Manage your account settings and subscription</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>• Account settings</li>
-                <li>• Privacy controls</li>
-                <li>• Subscription management</li>
-                <li>• Deleting your account</li>
-              </ul>
-              <Button variant="outline" className="w-full mt-4" asChild>
-                <Link href="/help/account">Learn More</Link>
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Removed Account & Billing */}
 
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader>
@@ -158,46 +174,44 @@ export default function HelpCenter() {
         </div>
 
         {/* Popular Articles */}
-        <Card className="mb-12">
-          <CardHeader>
-            <CardTitle>Popular Help Articles</CardTitle>
-            <CardDescription>Most frequently accessed help topics</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-3">
-                <Link href="/help/profile-tips" className="block p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                  <h4 className="font-semibold text-gray-900">How to write an attractive profile</h4>
-                  <p className="text-sm text-gray-600">Tips for creating a profile that gets responses</p>
-                </Link>
-                <Link href="/help/first-meeting" className="block p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                  <h4 className="font-semibold text-gray-900">Preparing for your first meeting</h4>
-                  <p className="text-sm text-gray-600">What to expect and how to prepare</p>
-                </Link>
-                <Link href="/help/red-flags" className="block p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                  <h4 className="font-semibold text-gray-900">Recognizing red flags</h4>
-                  <p className="text-sm text-gray-600">Warning signs to watch out for</p>
-                </Link>
-              </div>
-              <div className="space-y-3">
-                <Link href="/help/house-rules" className="block p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                  <h4 className="font-semibold text-gray-900">Setting up house rules</h4>
-                  <p className="text-sm text-gray-600">Creating a harmonious living environment</p>
-                </Link>
-                <Link href="/help/legal-agreements" className="block p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                  <h4 className="font-semibold text-gray-900">Legal agreements and contracts</h4>
-                  <p className="text-sm text-gray-600">Protecting yourself legally</p>
-                </Link>
-                <Link href="/help/troubleshooting" className="block p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                  <h4 className="font-semibold text-gray-900">Technical troubleshooting</h4>
-                  <p className="text-sm text-gray-600">Solving common website issues</p>
-                </Link>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+  <Card className="mb-12">
+  <CardHeader>
+    <CardTitle>Popular Help Articles</CardTitle>
+    <CardDescription>Most frequently accessed help topics</CardDescription>
+  </CardHeader>
+  <CardContent>
+    <div className="grid md:grid-cols-2 gap-4">
+      <Link href="/help/profile-tips" className="block p-3 rounded-lg hover:bg-gray-50 transition-colors">
+        <h4 className="font-semibold text-gray-900">How to write an attractive profile</h4>
+        <p className="text-sm text-gray-600">Tips for creating a profile that gets responses</p>
+      </Link>
+      <Link href="/help/first-meeting" className="block p-3 rounded-lg hover:bg-gray-50 transition-colors">
+        <h4 className="font-semibold text-gray-900">Preparing for your first meeting</h4>
+        <p className="text-sm text-gray-600">What to expect and how to prepare</p>
+      </Link>
+      <Link href="/help/red-flags" className="block p-3 rounded-lg hover:bg-gray-50 transition-colors">
+        <h4 className="font-semibold text-gray-900">Recognizing red flags</h4>
+        <p className="text-sm text-gray-600">Warning signs to watch out for</p>
+      </Link>
+      <Link href="/help/house-rules" className="block p-3 rounded-lg hover:bg-gray-50 transition-colors">
+        <h4 className="font-semibold text-gray-900">Setting up house rules</h4>
+        <p className="text-sm text-gray-600">Creating a harmonious living environment</p>
+      </Link>
+      <Link href="/help/legal-agreements" className="block p-3 rounded-lg hover:bg-gray-50 transition-colors">
+        <h4 className="font-semibold text-gray-900">Legal agreements and contracts</h4>
+        <p className="text-sm text-gray-600">Protecting yourself legally</p>
+      </Link>
+      <Link href="/help/troubleshooting" className="block p-3 rounded-lg hover:bg-gray-50 transition-colors">
+        <h4 className="font-semibold text-gray-900">Technical troubleshooting</h4>
+        <p className="text-sm text-gray-600">Solving common website issues</p>
+      </Link>
+    </div>
+  </CardContent>
+</Card>
 
-        {/* Contact Support */}
+
+
+        {/* Contact Support Section */}
         <div className="grid md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
@@ -216,7 +230,7 @@ export default function HelpCenter() {
                 <Button className="w-full" asChild>
                   <Link href="/contact">Send a Message</Link>
                 </Button>
-                <p className="text-sm text-gray-500 text-center">Typical response time: 2-4 hours</p>
+                <p className="text-sm text-gray-500 text-center">Typical response time: 2–4 hours</p>
               </div>
             </CardContent>
           </Card>
@@ -244,7 +258,7 @@ export default function HelpCenter() {
           </Card>
         </div>
 
-        {/* Quick Links */}
+         {/* Quick Links */}
         <div className="mt-12 text-center">
           <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
           <div className="flex flex-wrap justify-center gap-4">
@@ -255,14 +269,10 @@ export default function HelpCenter() {
               <Link href="/how-it-works">How It Works</Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/safety">Safety Guidelines</Link>
-            </Button>
-            <Button variant="outline" asChild>
               <Link href="/community">Community Guidelines</Link>
             </Button>
-          </div>
-        </div>
+           </div> {/* closes quick links container */}
+        </div> {/* closes mt-12 text-center */}
       </div>
-    </div>
-  )
-}
+  ); // ✅ closes return
+} // ✅ closes function
