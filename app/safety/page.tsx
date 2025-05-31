@@ -41,7 +41,7 @@ export default function Safety() {
           <AlertTriangle className="h-4 w-4 text-red-600" />
           <AlertDescription className="text-red-800">
             <strong>Emergency:</strong> If you ever feel unsafe or threatened, contact local emergency services
-            immediately at 911. For non-emergency safety concerns, contact our support team 24/7.
+            immediately at 111. For non-emergency safety concerns, contact our support team during business hours.
           </AlertDescription>
         </Alert>
 
