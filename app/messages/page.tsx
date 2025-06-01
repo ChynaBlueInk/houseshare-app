@@ -1,7 +1,7 @@
 "use client"
 
+import { Suspense, useEffect, useState } from "react"
 import Link from "next/link"
-import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,11 +11,20 @@ import { Home, Send } from "lucide-react"
 interface Message {
   id: number
   senderName: string
+    recipient: string
   content: string
   timestamp: string
 }
 
 export default function MessagesPage() {
+  return (
+    <Suspense fallback={<div className="p-4 text-gray-600">Loading messages...</div>}>
+      <MessagesContent />
+    </Suspense>
+  )
+}
+
+function MessagesContent() {
   const searchParams = useSearchParams()
   const recipient = searchParams?.get("user") || "Unknown User"
 
@@ -24,17 +33,15 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    // Simulate fetching messages for this user (from localStorage or mock API)
     fetchMessages(recipient)
   }, [recipient])
 
   const fetchMessages = async (recipient: string) => {
-const res = await fetch(`/api/messages?recipient=${encodeURIComponent(recipient)}`)
+    const res = await fetch(`/api/messages?recipient=${encodeURIComponent(recipient)}`)
     const data = await res.json()
 
-    // Filter messages by who you're talking to
     const conversation = data.filter(
-      (msg: Message) => msg.senderName === recipient || msg.senderName === "You"
+      (msg: Message) => msg.senderName === recipient || msg.recipient === recipient
     )
     setMessages(conversation)
   }
@@ -79,7 +86,9 @@ const res = await fetch(`/api/messages?recipient=${encodeURIComponent(recipient)
               <div key={msg.id} className="text-sm">
                 <p className="font-semibold">{msg.senderName}</p>
                 <p className="text-gray-700">{msg.content}</p>
-                <p className="text-xs text-gray-400">{new Date(msg.timestamp).toLocaleString()}</p>
+                <p className="text-xs text-gray-400">
+                  {new Date(msg.timestamp).toLocaleString()}
+                </p>
               </div>
             ))}
           </div>
