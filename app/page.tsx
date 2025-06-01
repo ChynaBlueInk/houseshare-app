@@ -122,7 +122,7 @@ export default function HomePage() {
               </div>
               <h4 className="text-xl font-semibold mb-3">Create Your Profile</h4>
               <p className="text-gray-600">
-                Share your housing situation, lifestyle preferences, and what you're looking for in a housemate.
+                Share your housing situation, lifestyle preferences, location and what you're looking for in a housemate.
               </p>
             </div>
             <div className="text-center">
@@ -152,7 +152,7 @@ export default function HomePage() {
         <div className="container mx-auto text-center max-w-3xl">
           <h3 className="text-3xl font-bold text-gray-900 mb-6">Ready to Find Your Ideal Houseshare?</h3>
           <p className="text-lg text-gray-600 mb-8">
-            Join hundreds of women who have found their perfect living arrangements through ShareSpace.
+            Join other women who hope to find their perfect living arrangements through ShareSpace.
           </p>
           <Button size="lg" className="text-lg px-8 py-6" asChild>
             <Link href="/profile/create">Start Your Journey Today</Link>
