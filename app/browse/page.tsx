@@ -419,13 +419,13 @@ const matchesBudget = profileBudgetRange[1] >= min && profileBudgetRange[0] <= m
                 </div>
 
                 <div className="flex gap-2 pt-2">
-                  <Button size="sm" className="flex-1">
-                    <MessageCircle className="h-4 w-4 mr-1" />
-                    Message
-                  </Button>
-                  <Button size="sm" variant="outline">
-                    <Heart className="h-4 w-4" />
-                  </Button>
+  <Link href={`/messages?user=${encodeURIComponent(profile.name)}`} className="flex-1">
+  <Button size="sm" className="w-full">
+    <MessageCircle className="h-4 w-4 mr-1" />
+    Message
+  </Button>
+</Link>
+
                   <Button
                     size="sm"
                     variant="outline"

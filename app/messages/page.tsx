@@ -1,39 +1,62 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Home, Send } from "lucide-react"
 
-export default function MessagesPage() {
-  const [message, setMessage] = useState("")
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      senderName: "You",
-      content: "Hi Linda, I saw your profile and thought we might be a good match.",
-      timestamp: "2025-05-31 15:15",
-    },
-    {
-      id: 2,
-      senderName: "Linda Rodriguez",
-      content: "Hi! Thanks for reaching out — tell me a bit about yourself.",
-      timestamp: "2025-05-31 15:17",
-    },
-  ])
+interface Message {
+  id: number
+  senderName: string
+  content: string
+  timestamp: string
+}
 
-  const handleSend = () => {
+export default function MessagesPage() {
+  const searchParams = useSearchParams()
+  const recipient = searchParams?.get("user") || "Unknown User"
+
+  const [message, setMessage] = useState("")
+  const [messages, setMessages] = useState<Message[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    // Simulate fetching messages for this user (from localStorage or mock API)
+    fetchMessages(recipient)
+  }, [recipient])
+
+  const fetchMessages = async (recipient: string) => {
+const res = await fetch(`/api/messages?recipient=${encodeURIComponent(recipient)}`)
+    const data = await res.json()
+
+    // Filter messages by who you're talking to
+    const conversation = data.filter(
+      (msg: Message) => msg.senderName === recipient || msg.senderName === "You"
+    )
+    setMessages(conversation)
+  }
+
+  const handleSend = async () => {
     if (message.trim() === "") return
-    const newMessage = {
-      id: Date.now(),
-      senderName: "You",
-      content: message,
-      timestamp: new Date().toISOString(),
-    }
-    setMessages([...messages, newMessage])
+    setLoading(true)
+
+    const res = await fetch("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        senderName: "You",
+        content: message,
+        recipient: recipient,
+      }),
+    })
+
+    const newMsg = await res.json()
+    setMessages((prev) => [...prev, newMsg])
     setMessage("")
+    setLoading(false)
   }
 
   return (
@@ -48,7 +71,7 @@ export default function MessagesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Chat with Linda Rodriguez</CardTitle>
+          <CardTitle>Chat with {recipient}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="max-h-96 overflow-y-auto space-y-3">
@@ -68,9 +91,9 @@ export default function MessagesPage() {
               onChange={(e) => setMessage(e.target.value)}
               className="flex-1"
             />
-            <Button onClick={handleSend}>
+            <Button onClick={handleSend} disabled={loading}>
               <Send className="w-4 h-4 mr-1" />
-              Send
+              {loading ? "Sending..." : "Send"}
             </Button>
           </div>
         </CardContent>
