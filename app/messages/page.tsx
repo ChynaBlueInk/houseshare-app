@@ -1,9 +1,10 @@
 "use client"
 export const dynamic = "force-dynamic"
 
-import { Suspense, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -12,7 +13,7 @@ import { Home, Send } from "lucide-react"
 interface Message {
   id: number
   senderName: string
-    recipient: string
+  recipient: string
   content: string
   timestamp: string
 }
@@ -20,48 +21,55 @@ interface Message {
 export default function MessagesPage() {
   return (
     <Suspense fallback={<div className="p-4 text-gray-600">Loading messages...</div>}>
-      <MessagesContent />
+      <MessagesWrapper />
     </Suspense>
   )
 }
 
-function MessagesContent() {
+function MessagesWrapper() {
   const searchParams = useSearchParams()
   const recipient = searchParams?.get("user") || "Unknown User"
+  return <MessagesContent recipient={recipient} />
+}
 
+function MessagesContent({ recipient }: { recipient: string }) {
   const [message, setMessage] = useState("")
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetchMessages(recipient)
+    // For now, use dummy messages. Replace with real API fetch in production.
+    const dummyMessages: Message[] = [
+      {
+        id: 1,
+        senderName: "Alice",
+        recipient,
+        content: "Hi there! Is the room still available?",
+        timestamp: new Date().toISOString(),
+      },
+      {
+        id: 2,
+        senderName: "You",
+        recipient: "Alice",
+        content: "Yes, it is!",
+        timestamp: new Date().toISOString(),
+      },
+    ]
+    setMessages(dummyMessages)
   }, [recipient])
-
-  const fetchMessages = async (recipient: string) => {
-    const res = await fetch(`/api/messages?recipient=${encodeURIComponent(recipient)}`)
-    const data = await res.json()
-
-    const conversation = data.filter(
-      (msg: Message) => msg.senderName === recipient || msg.recipient === recipient
-    )
-    setMessages(conversation)
-  }
 
   const handleSend = async () => {
     if (message.trim() === "") return
     setLoading(true)
 
-    const res = await fetch("/api/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        senderName: "You",
-        content: message,
-        recipient: recipient,
-      }),
-    })
+    const newMsg: Message = {
+      id: messages.length + 1,
+      senderName: "You",
+      recipient,
+      content: message,
+      timestamp: new Date().toISOString(),
+    }
 
-    const newMsg = await res.json()
     setMessages((prev) => [...prev, newMsg])
     setMessage("")
     setLoading(false)
