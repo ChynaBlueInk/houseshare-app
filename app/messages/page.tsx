@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button"
 import { Home, Send } from "lucide-react"
 
 interface Message {
-  id: number
-  senderName: string
+  messageId: string
+  sender: string
   recipient: string
   content: string
   timestamp: string
@@ -38,39 +38,52 @@ function MessagesContent({ recipient }: { recipient: string }) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    // For now, use dummy messages. Replace with real API fetch in production.
-    const dummyMessages: Message[] = [
-      {
-        id: 1,
-        senderName: "Alice",
-        recipient,
-        content: "Hi there! Is the room still available?",
-        timestamp: new Date().toISOString(),
-      },
-      {
-        id: 2,
-        senderName: "You",
-        recipient: "Alice",
-        content: "Yes, it is!",
-        timestamp: new Date().toISOString(),
-      },
-    ]
-    setMessages(dummyMessages)
+    fetchMessages(recipient)
   }, [recipient])
+
+  const fetchMessages = async (recipient: string) => {
+    try {
+      const res = await fetch(`/api/messages?recipient=${encodeURIComponent(recipient)}`)
+      const data = await res.json()
+      // If API returns error, prevent crash:
+      if (Array.isArray(data)) {
+        setMessages(data)
+      } else {
+        console.error("Invalid messages data:", data)
+        setMessages([])
+      }
+    } catch (err) {
+      console.error("Failed to fetch messages:", err)
+      setMessages([])
+    }
+  }
 
   const handleSend = async () => {
     if (message.trim() === "") return
     setLoading(true)
 
-    const newMsg: Message = {
-      id: messages.length + 1,
-      senderName: "You",
-      recipient,
-      content: message,
-      timestamp: new Date().toISOString(),
+    try {
+      const res = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sender: "You",
+          recipient: recipient,
+          content: message,
+        }),
+      })
+
+      const newMsg = await res.json()
+
+      if (newMsg && newMsg.messageId) {
+        setMessages((prev) => [...prev, newMsg])
+      } else {
+        console.error("Invalid new message response:", newMsg)
+      }
+    } catch (err) {
+      console.error("Failed to send message:", err)
     }
 
-    setMessages((prev) => [...prev, newMsg])
     setMessage("")
     setLoading(false)
   }
@@ -91,9 +104,9 @@ function MessagesContent({ recipient }: { recipient: string }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="max-h-96 overflow-y-auto space-y-3">
-            {messages.map((msg) => (
-              <div key={msg.id} className="text-sm">
-                <p className="font-semibold">{msg.senderName}</p>
+            {Array.isArray(messages) && messages.map((msg) => (
+              <div key={msg.messageId} className="text-sm">
+                <p className="font-semibold">{msg.sender}</p>
                 <p className="text-gray-700">{msg.content}</p>
                 <p className="text-xs text-gray-400">
                   {new Date(msg.timestamp).toLocaleString()}
