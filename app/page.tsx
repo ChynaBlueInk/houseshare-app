@@ -1,7 +1,8 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Home, Users, Shield, Heart } from "lucide-react"
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Home, Users, Shield, Heart } from "lucide-react";
+import { NavbarAuthButtons } from "@/components/navbar-auth-buttons";
 
 export default function HomePage() {
   return (
@@ -25,9 +26,7 @@ export default function HomePage() {
             </Link>
           </nav>
           <div className="flex items-center gap-3">
-            <Button variant="outline" asChild>
-              <Link href="/login">Sign In</Link>
-            </Button>
+            <NavbarAuthButtons />
             <Button asChild>
               <Link href="/profile/create">Get Started</Link>
             </Button>
@@ -55,16 +54,17 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-{/* Home Image Section */}
-<section className="px-4">
-  <div className="container mx-auto max-w-5xl">
-    <img
-      src="/HomeImage.png"
-      alt="Women laughing and enjoying wine together"
-      className="rounded-xl shadow-lg w-full object-cover"
-    />
-  </div>
-</section>
+
+      {/* Home Image Section */}
+      <section className="px-4">
+        <div className="container mx-auto max-w-5xl">
+          <img
+            src="/HomeImage.png"
+            alt="Women laughing and enjoying wine together"
+            className="rounded-xl shadow-lg w-full object-cover"
+          />
+        </div>
+      </section>
 
       {/* Features */}
       <section className="py-16 px-4 bg-white">
@@ -238,5 +238,5 @@ export default function HomePage() {
         </div>
       </footer>
     </div>
-  )
+  );
 }

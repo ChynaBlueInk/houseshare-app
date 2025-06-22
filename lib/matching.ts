@@ -3,6 +3,7 @@
 export interface UserProfile {
   id: number
   name: string
+  email: string
   age: string
   location: string
   housingStatus: "has-space" | "looking-for-space"

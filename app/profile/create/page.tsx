@@ -1,61 +1,59 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { ArrowLeft, Upload } from "lucide-react"
-import Link from "next/link"
+import { useAuthRedirect } from "@/lib/useAuthRedirect";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ArrowLeft, Upload } from "lucide-react";
+import Link from "next/link";
 
 export default function CreateProfile() {
-  const [step, setStep] = useState(1)
+  const authLoading = useAuthRedirect();
+
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    // Basic Info
     firstName: "",
     lastName: "",
     age: "",
     location: "",
     bio: "",
-
-    // Housing Status
-    housingStatus: "", // "has-space" or "looking-for-space"
+    housingStatus: "",
     propertyType: "",
     availableRooms: "",
     monthlyBudget: "",
     moveInDate: "",
-
-    // Lifestyle
     pets: "",
     petOwner: false,
     smoking: "",
     drinking: "",
     socialLevel: "",
     workStatus: "",
-
-    // Preferences
     agePreference: "",
     cleanlinessLevel: "",
     guestPolicy: "",
     quietHours: "",
-
-    // Compatibility Questions
     morningPerson: "",
     cookingStyle: "",
     tvWatching: "",
     exerciseHabits: "",
     spirituality: "",
-  })
+  });
 
-  const nextStep = () => setStep(step + 1)
-  const prevStep = () => setStep(step - 1)
+  const nextStep = () => setStep(step + 1);
+  const prevStep = () => setStep(step - 1);
 
   const updateFormData = (field: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  if (authLoading) {
+    return <div>Loading...</div>;
   }
 
   return (
@@ -67,6 +65,7 @@ export default function CreateProfile() {
             Back to Home
           </Link>
         </div>
+
 
         <Card>
           <CardHeader>

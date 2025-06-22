@@ -1,24 +1,23 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Heart, MessageCircle, MapPin, Home, Filter, Search } from "lucide-react"
-import Link from "next/link"
-import { calculateMatchScore, getMatchColor, getMatchLabel, type UserProfile, type MatchScore } from "@/lib/matching"
-import { MatchDetailsModal } from "@/components/match-details-modal"
-
-// Mock data for profiles (NZ-specific placeholders)
-// ⚠️ This is fake filler data. It will be replaced by live AWS database entries in Phase One.
+import { useAuthRedirect } from "@/lib/useAuthRedirect";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Heart, MessageCircle, MapPin, Home, Filter, Search } from "lucide-react";
+import Link from "next/link";
+import { calculateMatchScore, getMatchColor, getMatchLabel, type UserProfile, type MatchScore } from "@/lib/matching";
+import { MatchDetailsModal } from "@/components/match-details-modal";
 
 const profiles: UserProfile[] = [
   {
     id: 1,
     name: "Margaret Thompson",
+    email: "margaret@example.com",
     age: "62",
     location: "Napier, Hawke's Bay",
     housingStatus: "has-space",
@@ -43,6 +42,7 @@ const profiles: UserProfile[] = [
   {
     id: 2,
     name: "Susan Chen",
+    email: "susan@example.com",
     age: "58",
     location: "Tauranga, Bay of Plenty",
     housingStatus: "looking-for-space",
@@ -66,6 +66,7 @@ const profiles: UserProfile[] = [
   {
     id: 3,
     name: "Linda Rodriguez",
+    email: "linda@example.com",
     age: "55",
     location: "Wellington Central",
     housingStatus: "has-space",
@@ -90,6 +91,7 @@ const profiles: UserProfile[] = [
   {
     id: 4,
     name: "Carol Williams",
+    email: "carol@example.com",
     age: "67",
     location: "Timaru, Canterbury",
     housingStatus: "looking-for-space",
@@ -113,6 +115,7 @@ const profiles: UserProfile[] = [
   {
     id: 5,
     name: "Patricia Davis",
+    email: "patricia@example.com",
     age: "61",
     location: "Auckland, North Shore",
     housingStatus: "has-space",
@@ -137,6 +140,7 @@ const profiles: UserProfile[] = [
   {
     id: 6,
     name: "Barbara Johnson",
+    email: "barbara@example.com",
     age: "54",
     location: "Nelson, Tasman",
     housingStatus: "looking-for-space",
@@ -164,6 +168,7 @@ const profiles: UserProfile[] = [
 const currentUser: UserProfile = {
   id: 0,
   name: "Current User",
+  email: "currentuser@example.com",
   age: "58",
   location: "Napier , Hawke's Bay",
   housingStatus: "looking-for-space",
@@ -180,44 +185,56 @@ const currentUser: UserProfile = {
   cleanlinessLevel: "moderately-clean",
   guestPolicy: "occasional-guests",
 }
+
+
 function parseBudgetRange(range: string): [number, number] {
-  const match = range.match(/\$?(\d+)[^\d]+(\d+)/)
-  if (!match) return [0, Infinity]
-  return [parseInt(match[1]), parseInt(match[2])]
+  const match = range.match(/\$?(\d+)[^\d]+(\d+)/);
+  if (!match) return [0, Infinity];
+  return [parseInt(match[1]), parseInt(match[2])];
 }
 
 export default function BrowseProfiles() {
-const [searchTerm, setSearchTerm] = useState("")
-const [locationFilter, setLocationFilter] = useState("")
-const [housingFilter, setHousingFilter] = useState("")
-const [minBudget, setMinBudget] = useState("")
-const [maxBudget, setMaxBudget] = useState("")
-const [selectedMatch, setSelectedMatch] = useState<{ profile: UserProfile; matchScore: MatchScore } | null>(null)
+  const authLoading = useAuthRedirect();
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [housingFilter, setHousingFilter] = useState("");
+  const [minBudget, setMinBudget] = useState("");
+  const [maxBudget, setMaxBudget] = useState("");
+  const [selectedMatch, setSelectedMatch] = useState<{ profile: UserProfile; matchScore: MatchScore } | null>(null);
+
+  if (authLoading) {
+    return <div>Loading...</div>;
+  }
 
   const profilesWithMatches = profiles.map((profile) => {
-    const matchScore = calculateMatchScore(currentUser, profile)
-    return { ...profile, matchScore }
-  })
+    const matchScore = calculateMatchScore(currentUser, profile);
+    return { ...profile, matchScore };
+  });
 
   const filteredProfiles = profilesWithMatches
     .filter((profile) => {
       const matchesSearch =
         profile.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-(profile.bio?.toLowerCase() ?? "").includes(searchTerm.toLowerCase())
-const matchesLocation = locationFilter === "all" || profile.location.includes(locationFilter)
-      const matchesHousing = !housingFilter || profile.housingStatus === housingFilter
-const profileBudgetRange = parseBudgetRange(profile.monthlyBudget)
-const min = minBudget ? parseInt(minBudget) : 0
-const max = maxBudget ? parseInt(maxBudget) : Infinity
-const matchesBudget = profileBudgetRange[1] >= min && profileBudgetRange[0] <= max
+        (profile.bio?.toLowerCase() ?? "").includes(searchTerm.toLowerCase());
 
-      return matchesSearch && matchesLocation && matchesHousing && matchesBudget
+      const matchesLocation = locationFilter === "all" || profile.location.includes(locationFilter);
+
+      const matchesHousing = !housingFilter || profile.housingStatus === housingFilter;
+
+      const profileBudgetRange = parseBudgetRange(profile.monthlyBudget);
+      const min = minBudget ? parseInt(minBudget) : 0;
+      const max = maxBudget ? parseInt(maxBudget) : Infinity;
+
+      const matchesBudget = profileBudgetRange[1] >= min && profileBudgetRange[0] <= max;
+
+      return matchesSearch && matchesLocation && matchesHousing && matchesBudget;
     })
-    .sort((a, b) => b.matchScore.overallScore - a.matchScore.overallScore) // Sort by match score
+    .sort((a, b) => b.matchScore.overallScore - a.matchScore.overallScore);
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+           {/* Header */}
       <header className="border-b bg-white sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
@@ -419,7 +436,7 @@ const matchesBudget = profileBudgetRange[1] >= min && profileBudgetRange[0] <= m
                 </div>
 
                 <div className="flex gap-2 pt-2">
-  <Link href={`/messages?user=${encodeURIComponent(profile.name)}`} className="flex-1">
+  <Link href={`/messages?recipient=${encodeURIComponent(profile.email)}`} className="flex-1">
   <Button size="sm" className="w-full">
     <MessageCircle className="h-4 w-4 mr-1" />
     Message
@@ -471,7 +488,7 @@ const matchesBudget = profileBudgetRange[1] >= min && profileBudgetRange[0] <= m
             profileName={selectedMatch.profile.name}
           />
         )}
-      </div>
     </div>
-  )
+    </div>
+  );
 }

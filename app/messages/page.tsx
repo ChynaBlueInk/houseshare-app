@@ -1,4 +1,5 @@
 "use client"
+
 export const dynamic = "force-dynamic"
 
 import { useEffect, useState } from "react"
@@ -11,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Home, Send } from "lucide-react"
 
 interface Message {
-  messageId: string
+  messageID: string
   sender: string
   recipient: string
   content: string
@@ -28,7 +29,7 @@ export default function MessagesPage() {
 
 function MessagesWrapper() {
   const searchParams = useSearchParams()
-  const recipient = searchParams?.get("user") || "Unknown User"
+  const recipient = searchParams?.get("recipient") || "Unknown Recipient"
   return <MessagesContent recipient={recipient} />
 }
 
@@ -38,14 +39,16 @@ function MessagesContent({ recipient }: { recipient: string }) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    fetchMessages(recipient)
+    if (recipient !== "Unknown Recipient") {
+      fetchMessages(recipient)
+    }
   }, [recipient])
 
   const fetchMessages = async (recipient: string) => {
     try {
       const res = await fetch(`/api/messages?recipient=${encodeURIComponent(recipient)}`)
       const data = await res.json()
-      // If API returns error, prevent crash:
+
       if (Array.isArray(data)) {
         setMessages(data)
       } else {
@@ -75,7 +78,7 @@ function MessagesContent({ recipient }: { recipient: string }) {
 
       const newMsg = await res.json()
 
-      if (newMsg && newMsg.messageId) {
+      if (newMsg && newMsg.messageID) {
         setMessages((prev) => [...prev, newMsg])
       } else {
         console.error("Invalid new message response:", newMsg)
@@ -104,15 +107,19 @@ function MessagesContent({ recipient }: { recipient: string }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="max-h-96 overflow-y-auto space-y-3">
-            {Array.isArray(messages) && messages.map((msg) => (
-              <div key={msg.messageId} className="text-sm">
-                <p className="font-semibold">{msg.sender}</p>
-                <p className="text-gray-700">{msg.content}</p>
-                <p className="text-xs text-gray-400">
-                  {new Date(msg.timestamp).toLocaleString()}
-                </p>
-              </div>
-            ))}
+            {Array.isArray(messages) && messages.length > 0 ? (
+              messages.map((msg) => (
+                <div key={msg.messageID || msg.timestamp} className="text-sm">
+                  <p className="font-semibold">{msg.sender}</p>
+                  <p className="text-gray-700">{msg.content}</p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(msg.timestamp).toLocaleString()}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">No messages yet.</p>
+            )}
           </div>
 
           <div className="flex items-center gap-2 pt-4 border-t">
@@ -122,7 +129,7 @@ function MessagesContent({ recipient }: { recipient: string }) {
               onChange={(e) => setMessage(e.target.value)}
               className="flex-1"
             />
-            <Button onClick={handleSend} disabled={loading}>
+            <Button onClick={handleSend} disabled={loading || recipient === "Unknown Recipient"}>
               <Send className="w-4 h-4 mr-1" />
               {loading ? "Sending..." : "Send"}
             </Button>
