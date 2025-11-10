@@ -1,22 +1,22 @@
-"use client"
+// app/messages/page.tsx
+"use client";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { useSearchParams } from "next/navigation"
-import { Suspense } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Home, Send } from "lucide-react"
+import {Suspense, useEffect, useState} from "react";
+import Link from "next/link";
+import {useSearchParams} from "next/navigation";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
+import {Input} from "@/components/ui/input";
+import {Button} from "@/components/ui/button";
+import {Home, Send} from "lucide-react";
 
 interface Message {
-  messageID: string
-  sender: string
-  recipient: string
-  content: string
-  timestamp: string
+  messageID: string;
+  sender: string;
+  recipient: string;
+  content: string;
+  timestamp: string;
 }
 
 export default function MessagesPage() {
@@ -24,72 +24,79 @@ export default function MessagesPage() {
     <Suspense fallback={<div className="p-4 text-gray-600">Loading messages...</div>}>
       <MessagesWrapper />
     </Suspense>
-  )
+  );
 }
 
 function MessagesWrapper() {
-  const searchParams = useSearchParams()
-  const recipient = searchParams?.get("recipient") || "Unknown Recipient"
-  return <MessagesContent recipient={recipient} />
+  const searchParams = useSearchParams();
+  const recipientId = searchParams?.get("recipient") || "";
+  const recipientName = searchParams?.get("recipientName") || "";
+
+  return <MessagesContent recipientId={recipientId} recipientName={recipientName} />;
 }
 
-function MessagesContent({ recipient }: { recipient: string }) {
-  const [message, setMessage] = useState("")
-  const [messages, setMessages] = useState<Message[]>([])
-  const [loading, setLoading] = useState(false)
+function MessagesContent({recipientId, recipientName}: {recipientId: string; recipientName: string}) {
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (recipient !== "Unknown Recipient") {
-      fetchMessages(recipient)
+    if (recipientId) {
+      fetchMessages(recipientId);
+    } else {
+      setMessages([]);
     }
-  }, [recipient])
+  }, [recipientId]);
 
   const fetchMessages = async (recipient: string) => {
     try {
-      const res = await fetch(`/api/messages?recipient=${encodeURIComponent(recipient)}`)
-      const data = await res.json()
+      const res = await fetch(`/api/messages?recipient=${encodeURIComponent(recipient)}`);
+      const data = await res.json();
 
       if (Array.isArray(data)) {
-        setMessages(data)
+        setMessages(data);
       } else {
-        console.error("Invalid messages data:", data)
-        setMessages([])
+        console.error("Invalid messages data:", data);
+        setMessages([]);
       }
     } catch (err) {
-      console.error("Failed to fetch messages:", err)
-      setMessages([])
+      console.error("Failed to fetch messages:", err);
+      setMessages([]);
     }
-  }
+  };
 
   const handleSend = async () => {
-    if (message.trim() === "") return
-    setLoading(true)
+    if (!recipientId || message.trim() === "") return;
+    setLoading(true);
 
     try {
       const res = await fetch("/api/messages", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
-          sender: "You",
-          recipient: recipient,
+          sender: "You",          // later we can replace this with actual user name from /api/users/me
+          recipient: recipientId, // always use the ID for backend
           content: message,
         }),
-      })
+      });
 
-      const newMsg = await res.json()
+      const newMsg = await res.json();
 
       if (newMsg && newMsg.messageID) {
-        setMessages((prev) => [...prev, newMsg])
+        setMessages((prev) => [...prev, newMsg]);
       } else {
-        console.error("Invalid new message response:", newMsg)
+        console.error("Invalid new message response:", newMsg);
       }
     } catch (err) {
-      console.error("Failed to send message:", err)
+      console.error("Failed to send message:", err);
     }
 
-    setMessage("")
-    setLoading(false)
-  }
+    setMessage("");
+    setLoading(false);
+  };
+
+  const displayName =
+    recipientName || (recipientId ? `User ${recipientId.slice(0, 8)}…` : "Unknown recipient");
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -103,7 +110,7 @@ function MessagesContent({ recipient }: { recipient: string }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Chat with {recipient}</CardTitle>
+          <CardTitle>Chat with {displayName}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="max-h-96 overflow-y-auto space-y-3">
@@ -124,12 +131,15 @@ function MessagesContent({ recipient }: { recipient: string }) {
 
           <div className="flex items-center gap-2 pt-4 border-t">
             <Input
-              placeholder="Type a message..."
+              placeholder={recipientId ? "Type a message..." : "Select someone to message first"}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               className="flex-1"
             />
-            <Button onClick={handleSend} disabled={loading || recipient === "Unknown Recipient"}>
+            <Button
+              onClick={handleSend}
+              disabled={loading || !recipientId}
+            >
               <Send className="w-4 h-4 mr-1" />
               {loading ? "Sending..." : "Send"}
             </Button>
@@ -137,5 +147,5 @@ function MessagesContent({ recipient }: { recipient: string }) {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

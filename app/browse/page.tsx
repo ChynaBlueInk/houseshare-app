@@ -4,15 +4,16 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useAuthRedirect } from "@/lib/useAuthRedirect";
+import {useEffect, useMemo, useState} from "react";
+import {useAuthRedirect} from "@/lib/useAuthRedirect";
+import {getIdToken} from "@/lib/auth";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {Button} from "@/components/ui/button";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
+import {Input} from "@/components/ui/input";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {Badge} from "@/components/ui/badge";
+import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 
 import {
   calculateMatchScore,
@@ -21,39 +22,16 @@ import {
   type MatchScore,
 } from "@/lib/matching";
 
-import { MatchDetailsModal } from "@/components/match-details-modal";
+import {MatchDetailsModal} from "@/components/match-details-modal";
 
-type ApiMe = { user: UserProfile };
-type ApiUsers = { profiles: UserProfile[] };
+type ApiMe = {user: UserProfile};
+type ApiUsers = {profiles: UserProfile[]};
 
 const NZ_REGIONS = [
   "Northland","Auckland","Waikato","Bay of Plenty","Gisborne","Hawke's Bay","Taranaki",
   "Manawatū-Whanganui","Wellington","Tasman","Nelson","Marlborough","West Coast",
   "Canterbury","Otago","Southland","Chatham Islands",
 ];
-
-// ⚠️ Canonical token getter: prefer id_token, then idToken. If both exist and differ,
-// normalize them to the chosen one so future reads are consistent.
-function getIdToken(): string | null {
-  if (typeof window === "undefined") return null;
-  const underscore = localStorage.getItem("id_token");
-  const camel = localStorage.getItem("idToken");
-
-  // Prefer underscore key
-  const chosen = underscore || camel || null;
-
-  // If both exist and differ, normalize both to the chosen value
-  if (chosen && underscore !== camel) {
-    try {
-      localStorage.setItem("id_token", chosen);
-      localStorage.setItem("idToken", chosen);
-      // Optional: you can also normalize access/refresh here if needed
-      // console.log("[token] normalized id_token and idToken to same value");
-    } catch {}
-  }
-
-  return chosen;
-}
 
 // e.g. "Napier, Hawke's Bay" -> "hawke's bay"
 function extractRegion(value?: string): string {
@@ -117,30 +95,31 @@ export default function BrowsePage() {
 
         // 1) Fetch *my* profile (source of truth for the card)
         const meRes = await fetch("/api/users/me", {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {Authorization: `Bearer ${token}`},
           cache: "no-store",
         });
         const meJson: ApiMe = await meRes.json();
         if (!meRes.ok) throw new Error((meJson as any)?.error || "Failed to fetch current user.");
-        const myProfile = meJson.user; // strongly consistent
+        const myProfile = meJson.user;
 
         console.log("[/api/users/me] userID:", myProfile.userID, "fullName:", myProfile.fullName, "email:", myProfile.email);
 
         // 2) Fetch all profiles (used *only* for matches)
-        const allRes = await fetch("/api/users", { cache: "no-store" });
+        const allRes = await fetch("/api/users", {cache: "no-store"});
         const allJson: ApiUsers = await allRes.json();
         if (!allRes.ok) throw new Error((allJson as any)?.error || "Failed to fetch profiles.");
 
-        const mineInAll = (allJson.profiles ?? []).find((p) => p.userID === myProfile.userID) || null;
+        const mineInAll =
+          (allJson.profiles ?? []).find((p) => p.userID === myProfile.userID) || null;
         console.log("[/api/users] total:", (allJson.profiles ?? []).length, "mineInAll:", mineInAll?.fullName);
 
-        // 3) Exclude myself by userID (avoid relying on email)
+        // 3) Exclude myself by userID
         const others = (allJson.profiles ?? []).filter((p) => p.userID !== myProfile.userID);
 
         if (!cancelled) {
           setMe(myProfile);
           setProfiles(others);
-          setDebugInfo({ me: myProfile, mineInAll, count: (allJson.profiles ?? []).length });
+          setDebugInfo({me: myProfile, mineInAll, count: (allJson.profiles ?? []).length});
         }
       } catch (e: any) {
         if (!cancelled) {
@@ -217,10 +196,11 @@ export default function BrowsePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-
         {/* --- DEBUG PANEL (temporary) --- */}
         <details className="mb-4 rounded-md border p-3 bg-white/70">
-          <summary className="cursor-pointer text-sm font-medium">Debug (build {BUILD_STAMP})</summary>
+          <summary className="cursor-pointer text-sm font-medium">
+            Debug (build {BUILD_STAMP})
+          </summary>
           <pre className="text-xs overflow-auto mt-2">
 {JSON.stringify(
   {
@@ -264,7 +244,9 @@ export default function BrowsePage() {
                 </div>
               </div>
               <Button asChild variant="outline">
-                <Link href="/profile/create">{me.fullName ? "Edit Profile" : "Create Profile"}</Link>
+                <Link href="/profile/create">
+                  {me.fullName ? "Edit Profile" : "Create Profile"}
+                </Link>
               </Button>
             </CardContent>
           </Card>
@@ -364,8 +346,11 @@ export default function BrowsePage() {
                     View Match Details
                   </Button>
 
-                  {/* Link uses ?recipient= to match your messages page */}
-                  <Link href={`/messages?recipient=${encodeURIComponent(profile.userID)}`} className="shrink-0">
+                  {/* Pass both ID (for backend) and name (for display) */}
+                  <Link
+                    href={`/messages?recipient=${encodeURIComponent(profile.userID)}&recipientName=${encodeURIComponent(profile.fullName || "")}`}
+                    className="shrink-0"
+                  >
                     <Button size="sm" variant="outline">
                       Message
                     </Button>
