@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Home } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { NavbarAuthButtons } from "@/components/navbar-auth-buttons";
+import {useEffect, useState} from "react";
+import {usePathname} from "next/navigation";
+import {Home} from "lucide-react";
+import {Button} from "@/components/ui/button";
+import {NavbarAuthButtons} from "@/components/navbar-auth-buttons";
+import {getIdToken} from "@/lib/auth";
 
 type MeResponse = {
   user?: {
@@ -16,9 +18,10 @@ type MeResponse = {
 
 export function Navbar() {
   const [fullName, setFullName] = useState<string | null>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("id_token") : null;
+    const token = getIdToken();
     if (!token) {
       setFullName(null);
       return;
@@ -42,7 +45,7 @@ export function Navbar() {
         setFullName(null);
       }
     })();
-  }, []);
+  }, [pathname]);
 
   return (
     <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
@@ -68,7 +71,9 @@ export function Navbar() {
 
         <div className="flex items-center gap-3">
           {fullName ? (
-            <span className="hidden sm:inline text-sm text-gray-700">Hello, <span className="font-semibold">{fullName}</span></span>
+            <span className="hidden sm:inline text-sm text-gray-700">
+              Hello, <span className="font-semibold">{fullName}</span>
+            </span>
           ) : null}
           <NavbarAuthButtons />
           <Button asChild>

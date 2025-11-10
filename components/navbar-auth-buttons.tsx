@@ -1,35 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {useEffect, useState} from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { signOut } from "@/lib/auth";
-
-/**
- * Canonical token getter:
- * Prefer id_token, then idToken. If both exist and differ, normalize to the same value.
- */
-function getIdToken(): string | null {
-  if (typeof window === "undefined") return null;
-  const underscore = localStorage.getItem("id_token");
-  const camel = localStorage.getItem("idToken");
-  const chosen = underscore || camel || null;
-
-  if (chosen && underscore !== camel) {
-    try {
-      localStorage.setItem("id_token", chosen);
-      localStorage.setItem("idToken", chosen);
-    } catch {}
-  }
-  return chosen;
-}
+import {usePathname} from "next/navigation";
+import {Button} from "@/components/ui/button";
+import {getIdToken, signOut} from "@/lib/auth";
 
 export function NavbarAuthButtons() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     setIsLoggedIn(!!getIdToken());
-  }, []);
+  }, [pathname]);
 
   return (
     <div className="flex items-center gap-3">
