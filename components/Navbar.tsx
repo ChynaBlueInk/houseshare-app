@@ -57,7 +57,6 @@ export function Navbar() {
           </Link>
         </div>
 
-        // components/Navbar.tsx (only showing the nav section)
 
         <nav className="hidden md:flex items-center gap-6">
           <Link href="/browse" className="text-gray-600 hover:text-rose-600">

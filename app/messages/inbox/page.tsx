@@ -23,7 +23,9 @@ type MeResponse = {
 type Message = {
   messageID: string;
   sender: string;
+  senderId?: string;
   recipient: string;
+  recipientName?: string;
   content: string;
   timestamp: string;
 };
@@ -35,6 +37,7 @@ export default function MessagesInboxPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -64,9 +67,9 @@ export default function MessagesInboxPage() {
         const currentUser = meJson.user;
         setMe(currentUser);
 
-        // 2) Load messages where you are the recipient
+        // 2) Load all messages involving this user (sent + received)
         const msgsRes = await fetch(
-          `/api/messages?recipient=${encodeURIComponent(currentUser.userID as string)}`,
+          `/api/messages?forUser=${encodeURIComponent(currentUser.userID as string)}`,
         );
         const msgsJson = await msgsRes.json();
 
@@ -79,7 +82,7 @@ export default function MessagesInboxPage() {
         } else {
           setMessages([]);
         }
-      } catch (e: any) {
+      } catch (e:any) {
         console.error("Inbox load error:", e);
         setError(e?.message || "Something went wrong loading your messages.");
         setMessages([]);
@@ -90,6 +93,27 @@ export default function MessagesInboxPage() {
 
     load();
   }, [authLoading]);
+
+  const handleDelete = async (messageID: string) => {
+    try {
+      setDeletingId(messageID);
+      const res = await fetch(`/api/messages?messageID=${encodeURIComponent(messageID)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data?.ok) {
+        console.error("Failed to delete message:", data);
+        return;
+      }
+
+      setMessages((prev) => prev.filter((m) => m.messageID !== messageID));
+    } catch (err) {
+      console.error("Failed to delete message:", err);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (authLoading || loading) {
     return <div className="p-4 text-gray-700">Loading your messages...</div>;
@@ -115,6 +139,8 @@ export default function MessagesInboxPage() {
     );
   }
 
+  const myId = me?.userID;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 space-y-4">
@@ -136,26 +162,41 @@ export default function MessagesInboxPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Inbox</CardTitle>
+            <CardTitle>Inbox (sent & received)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {messages.length === 0 ? (
               <p className="text-sm text-gray-500">You don’t have any messages yet.</p>
             ) : (
-              messages.map((msg) => (
-                <div
-                  key={msg.messageID || msg.timestamp}
-                  className="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0"
-                >
-                  <p className="text-sm font-semibold">
-                    From: <span>{msg.sender || "Unknown sender"}</span>
-                  </p>
-                  <p className="text-sm text-gray-800">{msg.content}</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {new Date(msg.timestamp).toLocaleString()}
-                  </p>
-                </div>
-              ))
+              messages.map((msg) => {
+                const isMine = myId && msg.senderId === myId;
+                const directionLabel = isMine
+                  ? `To: ${msg.recipientName || msg.recipient || "Unknown"}`
+                  : `From: ${msg.sender || "Unknown sender"}`;
+
+                return (
+                  <div
+                    key={msg.messageID || msg.timestamp}
+                    className="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0 flex items-start justify-between gap-3"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold">{directionLabel}</p>
+                      <p className="text-sm text-gray-800">{msg.content}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {new Date(msg.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(msg.messageID)}
+                      disabled={deletingId === msg.messageID}
+                    >
+                      {deletingId === msg.messageID ? "Deleting..." : "Delete"}
+                    </Button>
+                  </div>
+                );
+              })
             )}
           </CardContent>
         </Card>

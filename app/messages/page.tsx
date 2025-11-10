@@ -10,13 +10,26 @@ import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
 import {Home, Send} from "lucide-react";
+import {getIdToken} from "@/lib/auth";
 
 interface Message {
   messageID: string;
   sender: string;
+  senderId?: string;
   recipient: string;
+  recipientName?: string;
   content: string;
   timestamp: string;
+}
+
+interface MeUser {
+  userID?: string;
+  fullName?: string;
+  email?: string;
+}
+
+interface MeResponse {
+  user?: MeUser;
 }
 
 export default function MessagesPage() {
@@ -39,43 +52,85 @@ function MessagesContent({recipientId, recipientName}: {recipientId: string; rec
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
+  const [me, setMe] = useState<MeUser | null>(null);
+  const [initialising, setInitialising] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Load current user + conversation
   useEffect(() => {
-    if (recipientId) {
-      fetchMessages(recipientId);
-    } else {
-      setMessages([]);
+    async function init() {
+      try {
+        setInitialising(true);
+        setError(null);
+        setMessages([]);
+
+        if (!recipientId) {
+          return;
+        }
+
+        const token = getIdToken();
+        if (!token) {
+          setError("Please sign in to view messages.");
+          return;
+        }
+
+        // 1) Load current user
+        const meRes = await fetch("/api/users/me", {
+          headers: {Authorization: `Bearer ${token}`},
+          cache: "no-store",
+        });
+        const meJson: MeResponse = await meRes.json();
+
+        if (!meRes.ok || !meJson.user?.userID) {
+          throw new Error((meJson as any)?.error || "Could not load your profile.");
+        }
+
+        const currentUser = meJson.user;
+        setMe(currentUser);
+
+        // 2) Load full conversation (sent + received)
+        const convRes = await fetch(
+          `/api/messages?participantA=${encodeURIComponent(
+            currentUser.userID as string,
+          )}&participantB=${encodeURIComponent(recipientId)}`,
+        );
+        const convJson = await convRes.json();
+
+        if (!convRes.ok) {
+          throw new Error(convJson?.error || "Failed to load messages.");
+        }
+
+        if (Array.isArray(convJson)) {
+          setMessages(convJson);
+        } else {
+          setMessages([]);
+        }
+      } catch (e:any) {
+        console.error("Messages init error:", e);
+        setError(e?.message || "Something went wrong loading messages.");
+      } finally {
+        setInitialising(false);
+      }
     }
+
+    init();
   }, [recipientId]);
 
-  const fetchMessages = async (recipient: string) => {
-    try {
-      const res = await fetch(`/api/messages?recipient=${encodeURIComponent(recipient)}`);
-      const data = await res.json();
-
-      if (Array.isArray(data)) {
-        setMessages(data);
-      } else {
-        console.error("Invalid messages data:", data);
-        setMessages([]);
-      }
-    } catch (err) {
-      console.error("Failed to fetch messages:", err);
-      setMessages([]);
-    }
-  };
-
   const handleSend = async () => {
-    if (!recipientId || message.trim() === "") return;
+    if (!recipientId || message.trim() === "" || !me?.userID) return;
     setLoading(true);
 
     try {
+      const senderName = me.fullName || me.email || "You";
+
       const res = await fetch("/api/messages", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
-          sender: "You",          // later we can replace this with actual user name from /api/users/me
-          recipient: recipientId, // always use the ID for backend
+          senderName,
+          senderId: me.userID,
+          recipient: recipientId,
+          recipientName,
           content: message,
         }),
       });
@@ -97,6 +152,36 @@ function MessagesContent({recipientId, recipientName}: {recipientId: string; rec
 
   const displayName =
     recipientName || (recipientId ? `User ${recipientId.slice(0, 8)}…` : "Unknown recipient");
+
+  if (initialising) {
+    return <div className="p-4 text-gray-700">Loading conversation...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <header className="flex items-center justify-between border-b pb-4 mb-6">
+          <Link href="/" className="flex items-center gap-2">
+            <Home className="h-6 w-6 text-rose-600" />
+            <span className="text-xl font-bold text-gray-900">ShareSpace</span>
+          </Link>
+          <h1 className="text-xl font-semibold">Messages</h1>
+        </header>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Unable to load messages</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-700 mb-4">{error}</p>
+            <Button asChild variant="outline">
+              <Link href="/browse">Back to Browse</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
@@ -138,7 +223,7 @@ function MessagesContent({recipientId, recipientName}: {recipientId: string; rec
             />
             <Button
               onClick={handleSend}
-              disabled={loading || !recipientId}
+              disabled={loading || !recipientId || !me?.userID}
             >
               <Send className="w-4 h-4 mr-1" />
               {loading ? "Sending..." : "Send"}
