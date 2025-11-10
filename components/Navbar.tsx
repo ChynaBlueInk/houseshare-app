@@ -57,6 +57,8 @@ export function Navbar() {
           </Link>
         </div>
 
+        // components/Navbar.tsx (only showing the nav section)
+
         <nav className="hidden md:flex items-center gap-6">
           <Link href="/browse" className="text-gray-600 hover:text-rose-600">
             Browse Profiles
@@ -67,7 +69,11 @@ export function Navbar() {
           <Link href="/safety" className="text-gray-600 hover:text-rose-600">
             Safety
           </Link>
+          <Link href="/messages/inbox" className="text-gray-600 hover:text-rose-600">
+            Messages
+          </Link>
         </nav>
+
 
         <div className="flex items-center gap-3">
           {fullName ? (
