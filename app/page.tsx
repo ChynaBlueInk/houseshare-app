@@ -1,39 +1,11 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Home, Users, Shield, Heart } from "lucide-react";
-import { NavbarAuthButtons } from "@/components/navbar-auth-buttons";
+import { Users, Shield, Heart } from "lucide-react";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Home className="h-8 w-8 text-rose-600" />
-            <h1 className="text-2xl font-bold text-gray-900">ShareSpace</h1>
-          </div>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/browse" className="text-gray-600 hover:text-rose-600">
-              Browse Profiles
-            </Link>
-            <Link href="/how-it-works" className="text-gray-600 hover:text-rose-600">
-              How It Works
-            </Link>
-            <Link href="/safety" className="text-gray-600 hover:text-rose-600">
-              Safety
-            </Link>
-          </nav>
-          <div className="flex items-center gap-3">
-            <NavbarAuthButtons />
-            <Button asChild>
-              <Link href="/profile/create">Get Started</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
-
+    <div className="bg-gradient-to-b from-rose-50 to-white">
       {/* Hero Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
@@ -115,7 +87,7 @@ export default function HomePage() {
       <section className="py-16 px-4 bg-rose-50">
         <div className="container mx-auto max-w-4xl">
           <h3 className="text-3xl font-bold text-center text-gray-900 mb-12">How It Works</h3>
-          <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">
               <div className="w-16 h-16 bg-rose-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
                 1
@@ -159,84 +131,6 @@ export default function HomePage() {
           </Button>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 px-4">
-        <div className="container mx-auto">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Home className="h-6 w-6 text-rose-400" />
-                <span className="text-xl font-bold">ShareSpace</span>
-              </div>
-              <p className="text-gray-400">Connecting women 50+ for meaningful housesharing experiences.</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Platform</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <Link href="/browse" className="hover:text-white">
-                    Browse Profiles
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/how-it-works" className="hover:text-white">
-                    How It Works
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/safety" className="hover:text-white">
-                    Safety
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <Link href="/help" className="hover:text-white">
-                    Help Center
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/contact" className="hover:text-white">
-                    Contact Us
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/faq" className="hover:text-white">
-                    FAQ
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Legal</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <Link href="/privacy" className="hover:text-white">
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/terms" className="hover:text-white">
-                    Terms of Service
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/community" className="hover:text-white">
-                    Community Guidelines
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 ShareSpace. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

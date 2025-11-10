@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CognitoIdentityProviderClient,
   SignUpCommand,
   ConfirmSignUpCommand,
   ResendConfirmationCodeCommand,
+  InitiateAuthCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -19,15 +21,53 @@ const cognitoClient = new CognitoIdentityProviderClient({
 const USER_POOL_ID = "ap-southeast-2_3SGRnUpf5";
 const CLIENT_ID = "6bpvj6dq1kalujdu7mdieujtfl";
 
+// Canonical token helpers — keep id_token and idToken in sync
+function saveTokens(opts: { id?: string | null; access?: string | null; refresh?: string | null }) {
+  if (typeof window === "undefined") return;
+  const { id, access, refresh } = opts;
+  if (id) {
+    localStorage.setItem("id_token", id);
+    localStorage.setItem("idToken", id);
+  }
+  if (access) localStorage.setItem("access_token", access);
+  if (refresh) localStorage.setItem("refresh_token", refresh);
+}
+
+function getIdToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const underscore = localStorage.getItem("id_token");
+  const camel = localStorage.getItem("idToken");
+  const chosen = underscore || camel || null;
+  if (chosen && underscore !== camel) {
+    try {
+      localStorage.setItem("id_token", chosen);
+      localStorage.setItem("idToken", chosen);
+    } catch {}
+  }
+  return chosen;
+}
+
 export default function SignUpPage() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
   const [confirmationCode, setConfirmationCode] = useState("");
   const [showConfirmForm, setShowConfirmForm] = useState(false);
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  // If already authenticated, go straight to the profile form
+  useEffect(() => {
+    const token = getIdToken();
+    if (token) {
+      router.replace("/profile/create");
+    }
+  }, [router]);
 
   const handleSignUp = async () => {
     setLoading(true);
@@ -39,16 +79,10 @@ export default function SignUpPage() {
         ClientId: CLIENT_ID,
         Username: email,
         Password: password,
-        UserAttributes: [
-          {
-            Name: "email",
-            Value: email,
-          },
-        ],
+        UserAttributes: [{ Name: "email", Value: email }],
       });
 
       const response = await cognitoClient.send(command);
-
       console.log("Sign up success:", response);
 
       setShowConfirmForm(true);
@@ -73,10 +107,30 @@ export default function SignUpPage() {
       });
 
       const response = await cognitoClient.send(command);
-
       console.log("Confirm sign up success:", response);
 
+      // Immediately sign in so we can collect the full profile next
+      const auth = await cognitoClient.send(
+        new InitiateAuthCommand({
+          AuthFlow: "USER_PASSWORD_AUTH",
+          ClientId: CLIENT_ID,
+          AuthParameters: {
+            USERNAME: email,
+            PASSWORD: password,
+          },
+        })
+      );
+
+      const authRes = auth.AuthenticationResult;
+      saveTokens({
+        id: authRes?.IdToken || null,
+        access: authRes?.AccessToken || null,
+        refresh: authRes?.RefreshToken || null,
+      });
+
       setSuccess(true);
+      // Go straight to the profile creation/edit form (will read id_token for sub/email)
+      router.replace("/profile/create");
     } catch (err: any) {
       console.error("Confirm sign up error:", err);
       setError(err.message || "Failed to confirm account. Please try again.");
@@ -96,7 +150,6 @@ export default function SignUpPage() {
       });
 
       const response = await cognitoClient.send(command);
-
       console.log("Resend confirmation code success:", response);
 
       alert("Confirmation code resent. Please check your email.");
@@ -115,7 +168,7 @@ export default function SignUpPage() {
 
         {success ? (
           <div className="text-green-600 text-lg mb-6">
-            Your account has been confirmed! You can now sign in.
+            Your account has been confirmed! Redirecting you to your profile…
           </div>
         ) : showConfirmForm ? (
           <div className="space-y-4 mb-6 text-left">
@@ -143,6 +196,13 @@ export default function SignUpPage() {
             <Button variant="outline" onClick={handleResendCode} disabled={loading} className="w-full mt-2">
               Resend Confirmation Code
             </Button>
+
+            <p className="text-gray-600 text-sm mt-4">
+              Already confirmed?{" "}
+              <Link href="/signin" className="text-rose-600 hover:underline">
+                Sign in here
+              </Link>
+            </p>
           </div>
         ) : (
           <div className="space-y-4 mb-6 text-left">
@@ -184,20 +244,10 @@ export default function SignUpPage() {
 
             {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
 
-            <Button onClick={handleSignUp} disabled={loading} className="w-full">
+            <Button onClick={handleSignUp} disabled={loading || !email || !password} className="w-full">
               {loading ? "Signing up..." : "Sign Up"}
             </Button>
-          </div>
-        )}
 
-        {success && (
-          <Button variant="outline" asChild className="w-full mt-4">
-            <Link href="/signin">Go to Sign In</Link>
-          </Button>
-        )}
-
-        {!success && (
-          <>
             <p className="text-gray-600 text-sm mt-4">
               Already have an account?{" "}
               <Link href="/signin" className="text-rose-600 hover:underline">
@@ -208,7 +258,7 @@ export default function SignUpPage() {
             <Button variant="outline" asChild className="w-full mt-4">
               <Link href="/">Back to Home</Link>
             </Button>
-          </>
+          </div>
         )}
       </div>
     </div>

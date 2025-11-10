@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { decodeJWT } from "@/lib/decodeJWT";
 import { useAuthRedirect } from "@/lib/useAuthRedirect";
-import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,9 +15,58 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ArrowLeft, Upload } from "lucide-react";
 import Link from "next/link";
 
+type DecodedToken = {
+  sub?: string;
+  email?: string;
+  username?: string;
+  [key: string]: unknown;
+};
+
+type Profile = {
+  userID: string;
+  email?: string;
+  fullName?: string;
+  region?: string;
+
+  // Optional extended fields (we’ll map them if present)
+  firstName?: string;
+  lastName?: string;
+  age?: string;
+  location?: string;
+  bio?: string;
+  housingStatus?: string;
+  propertyType?: string;
+  availableRooms?: string;
+  monthlyBudget?: string;
+  moveInDate?: string;
+  pets?: string;
+  petOwner?: boolean;
+  smoking?: string;
+  drinking?: string;
+  socialLevel?: string;
+  workStatus?: string;
+  agePreference?: string;
+  cleanlinessLevel?: string;
+  guestPolicy?: string;
+  quietHours?: string;
+  morningPerson?: string;
+  cookingStyle?: string;
+  tvWatching?: string;
+  exerciseHabits?: string;
+  spirituality?: string;
+
+  [key: string]: any;
+};
+
 export default function CreateProfile() {
   const authLoading = useAuthRedirect();
 
+  const [userID, setUserID] = useState("");
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const [isEditMode, setIsEditMode] = useState(false);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     firstName: "",
@@ -45,16 +96,158 @@ export default function CreateProfile() {
     spirituality: "",
   });
 
-  const nextStep = () => setStep(step + 1);
-  const prevStep = () => setStep(step - 1);
+  // --- Token parsing + fallback to /api/users/me (same as before, robust) ---
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("id_token") : null;
+    if (!token) return;
+
+    const decoded = decodeJWT(token) as DecodedToken | null;
+
+    const pickUserID = (d?: DecodedToken | null) =>
+      d?.sub || (d && (d["cognito:username"] as string)) || d?.username || "";
+
+    const pickEmail = (d?: DecodedToken | null) =>
+      d?.email || (d && (d["cognito:email"] as string)) || (d && (d["custom:email"] as string)) || "";
+
+    let uid = pickUserID(decoded);
+    let mail = pickEmail(decoded);
+
+    setUserID(uid);
+    setEmail(mail);
+
+    if (!uid || !mail) {
+      (async () => {
+        try {
+          const res = await fetch("/api/users/me", {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          const user = data?.user || {};
+          setUserID((prev) => prev || user.userID || user.sub || user.username || "");
+          setEmail((prev) => prev || user.email || "");
+        } catch {
+          // ignore; submit will validate
+        }
+      })();
+    }
+  }, []);
+
+  // --- Load existing profile (if any) and pre-fill the form ---
+  useEffect(() => {
+    if (!userID) return;
+
+    (async () => {
+      try {
+        // Fetch all profiles and find mine (API contract: GET /api/users -> { profiles: [...] })
+        const res = await fetch("/api/users", { cache: "no-store" });
+        if (!res.ok) return;
+        const json = await res.json();
+        const profiles: Profile[] = json?.profiles ?? [];
+
+        const me = profiles.find((p) => p.userID === userID);
+        if (!me) {
+          setIsEditMode(false);
+          return;
+        }
+
+        setIsEditMode(true);
+
+        // Prefer explicit first/last if stored; otherwise split fullName
+        const splitName = (me.fullName || "").trim().split(" ");
+        const guessedFirst = me.firstName || splitName[0] || "";
+        const guessedLast = me.lastName || splitName.slice(1).join(" ") || "";
+
+        setEmail((prev) => prev || me.email || "");
+        setFormData((prev) => ({
+          ...prev,
+          firstName: guessedFirst || prev.firstName,
+          lastName: guessedLast || prev.lastName,
+          age: me.age ?? prev.age,
+          location: me.location ?? me.region ?? prev.location,
+          bio: me.bio ?? prev.bio,
+          housingStatus: me.housingStatus ?? prev.housingStatus,
+          propertyType: me.propertyType ?? prev.propertyType,
+          availableRooms: me.availableRooms ?? prev.availableRooms,
+          monthlyBudget: me.monthlyBudget ?? prev.monthlyBudget,
+          moveInDate: me.moveInDate ?? prev.moveInDate,
+          pets: me.pets ?? prev.pets,
+          petOwner: typeof me.petOwner === "boolean" ? me.petOwner : prev.petOwner,
+          smoking: me.smoking ?? prev.smoking,
+          drinking: me.drinking ?? prev.drinking,
+          socialLevel: me.socialLevel ?? prev.socialLevel,
+          workStatus: me.workStatus ?? prev.workStatus,
+          agePreference: me.agePreference ?? prev.agePreference,
+          cleanlinessLevel: me.cleanlinessLevel ?? prev.cleanlinessLevel,
+          guestPolicy: me.guestPolicy ?? prev.guestPolicy,
+          quietHours: me.quietHours ?? prev.quietHours,
+          morningPerson: me.morningPerson ?? prev.morningPerson,
+          cookingStyle: me.cookingStyle ?? prev.cookingStyle,
+          tvWatching: me.tvWatching ?? prev.tvWatching,
+          exerciseHabits: me.exerciseHabits ?? prev.exerciseHabits,
+          spirituality: me.spirituality ?? prev.spirituality,
+        }));
+      } catch {
+        // ignore
+      }
+    })();
+  }, [userID]);
+
+  const nextStep = () => setStep((s) => s + 1);
+  const prevStep = () => setStep((s) => s - 1);
 
   const updateFormData = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  if (authLoading) {
-    return <div>Loading...</div>;
-  }
+  const handleSubmit = async () => {
+    setLoading(true);
+    setMessage("");
+
+    const fullName = `${formData.firstName} ${formData.lastName}`.trim();
+
+    if (!userID || !email || fullName.length < 2) {
+      setMessage("❌ Please log in and enter your name.");
+      setLoading(false);
+      console.warn("Submission blocked — userID or email or name missing:", { userID, email, fullName });
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // If needed for your API auth: Authorization: `Bearer ${localStorage.getItem("id_token") || ""}`,
+        },
+        body: JSON.stringify({
+          userID,
+          email,
+          fullName,
+          region: formData.location, // saved as 'region' in DB
+          profileImage: "",
+          ...formData,
+        }),
+      });
+
+      const responseData = await res.json();
+      console.log("✅ API Response:", responseData);
+
+      if (res.ok) {
+        setMessage(isEditMode ? "✅ Profile updated!" : "🎉 Profile created! You can now start browsing house shares.");
+      } else {
+        setMessage(`❌ Error: ${responseData.error || "Something went wrong"}`);
+      }
+    } catch (err) {
+      console.error("❌ Network error:", err);
+      setMessage("❌ Network error while saving.");
+    }
+
+    setLoading(false);
+  };
+
+  if (authLoading) return <div>Loading...</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -66,17 +259,12 @@ export default function CreateProfile() {
           </Link>
         </div>
 
-
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Create Your Profile</CardTitle>
-            <CardDescription>Step {step} of 4 - Let's help you find the perfect houseshare match</CardDescription>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-rose-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${(step / 4) * 100}%` }}
-              />
-            </div>
+            <CardTitle className="text-2xl">{isEditMode ? "Edit Your Profile" : "Create Your Profile"}</CardTitle>
+            <CardDescription>
+              Step {step} of 4 - Let's help you find the perfect houseshare match
+            </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
@@ -481,22 +669,27 @@ export default function CreateProfile() {
             )}
 
             <div className="flex justify-between pt-6">
-              {step > 1 && (
-                <Button variant="outline" onClick={prevStep}>
-                  Previous
-                </Button>
-              )}
+              {step > 1 && <Button variant="outline" onClick={prevStep}>Previous</Button>}
               {step < 4 ? (
-                <Button onClick={nextStep} className="ml-auto">
-                  Next
-                </Button>
+                <Button onClick={nextStep} className="ml-auto">Next</Button>
               ) : (
-                <Button className="ml-auto">Create Profile</Button>
+                <Button
+                  className="ml-auto"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  type="button"
+                >
+                  {loading ? "Saving..." : isEditMode ? "Save Profile" : "Create Profile"}
+                </Button>
               )}
             </div>
+
+            {message && (
+              <p className="text-sm text-center pt-4 text-rose-600">{message}</p>
+            )}
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }

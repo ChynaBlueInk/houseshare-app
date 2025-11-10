@@ -1,494 +1,396 @@
+// app/browse/page.tsx
 "use client";
 
+export const dynamic = "force-dynamic";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { useAuthRedirect } from "@/lib/useAuthRedirect";
-import { useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, MessageCircle, MapPin, Home, Filter, Search } from "lucide-react";
-import Link from "next/link";
-import { calculateMatchScore, getMatchColor, getMatchLabel, type UserProfile, type MatchScore } from "@/lib/matching";
+
+import {
+  calculateMatchScore,
+  getMatchLabel,
+  type UserProfile,
+  type MatchScore,
+} from "@/lib/matching";
+
 import { MatchDetailsModal } from "@/components/match-details-modal";
 
-const profiles: UserProfile[] = [
-  {
-    id: 1,
-    name: "Margaret Thompson",
-    email: "margaret@example.com",
-    age: "62",
-    location: "Napier, Hawke's Bay",
-    housingStatus: "has-space",
-    propertyType: "House",
-    monthlyBudget: "$250-350",
-    bio: "Retired teacher looking for a friendly companion to share my cozy 3-bedroom home in Napier. I love gardening, reading, and cooking. Non-smoker, social drinker, and very pet-friendly!",
-    lifestyle: ["Non-smoker", "Pet-friendly", "Social drinker", "Early bird", "Love cooking"],
-    image: "/placeholder.svg?height=200&width=200",
-    verified: true,
-    pets: "love-pets",
-    petOwner: true,
-    smoking: "non-smoker",
-    drinking: "social-drinker",
-    socialLevel: "moderately-social",
-    workStatus: "retired",
-    morningPerson: "early-bird",
-    cookingStyle: "love-cooking",
-    tvWatching: "occasional-viewer",
-    cleanlinessLevel: "moderately-clean",
-    guestPolicy: "occasional-guests",
-  },
-  {
-    id: 2,
-    name: "Susan Chen",
-    email: "susan@example.com",
-    age: "58",
-    location: "Tauranga, Bay of Plenty",
-    housingStatus: "looking-for-space",
-    monthlyBudget: "$300-450",
-    bio: "Recently divorced and looking for a fresh start in Tauranga. I'm a part-time consultant who enjoys yoga, hiking, and quiet evenings. Looking for a peaceful home environment.",
-    lifestyle: ["Non-smoker", "Non-drinker", "Quiet", "Moderate schedule", "Tidy"],
-    image: "/placeholder.svg?height=200&width=200",
-    verified: true,
-    pets: "ok-with-pets",
-    petOwner: false,
-    smoking: "non-smoker",
-    drinking: "non-drinker",
-    socialLevel: "quiet-homebody",
-    workStatus: "working-part-time",
-    morningPerson: "moderate-schedule",
-    cookingStyle: "basic-cooking",
-    tvWatching: "rarely-watch",
-    cleanlinessLevel: "very-tidy",
-    guestPolicy: "rare-guests",
-  },
-  {
-    id: 3,
-    name: "Linda Rodriguez",
-    email: "linda@example.com",
-    age: "55",
-    location: "Wellington Central",
-    housingStatus: "has-space",
-    propertyType: "Condo",
-    monthlyBudget: "$450-600",
-    bio: "Working professional with a beautiful condo in Wellington. I travel frequently for work, so looking for someone responsible to share the space. Love entertaining friends!",
-    lifestyle: ["Non-smoker", "Social drinker", "Very social", "Night owl", "Guests welcome"],
-    image: "/placeholder.svg?height=200&width=200",
-    verified: true,
-    pets: "ok-with-pets",
-    petOwner: false,
-    smoking: "non-smoker",
-    drinking: "social-drinker",
-    socialLevel: "very-social",
-    workStatus: "working-full-time",
-    morningPerson: "night-owl",
-    cookingStyle: "minimal-cooking",
-    tvWatching: "tv-lover",
-    cleanlinessLevel: "moderately-clean",
-    guestPolicy: "guests-welcome",
-  },
-  {
-    id: 4,
-    name: "Carol Williams",
-    email: "carol@example.com",
-    age: "67",
-    location: "Timaru, Canterbury",
-    housingStatus: "looking-for-space",
-    monthlyBudget: "$200-300",
-    bio: "Retired nurse seeking a quiet, comfortable place in Timaru. I'm very clean, respectful, and enjoy reading, crafts, and volunteering at the local animal shelter.",
-    lifestyle: ["Non-smoker", "Non-drinker", "Pet-friendly", "Early bird", "Very tidy"],
-    image: "/placeholder.svg?height=200&width=200",
-    verified: true,
-    pets: "love-pets",
-    petOwner: false,
-    smoking: "non-smoker",
-    drinking: "non-drinker",
-    socialLevel: "quiet-homebody",
-    workStatus: "retired",
-    morningPerson: "early-bird",
-    cookingStyle: "basic-cooking",
-    tvWatching: "occasional-viewer",
-    cleanlinessLevel: "very-tidy",
-    guestPolicy: "rare-guests",
-  },
-  {
-    id: 5,
-    name: "Patricia Davis",
-    email: "patricia@example.com",
-    age: "61",
-    location: "Auckland, North Shore",
-    housingStatus: "has-space",
-    propertyType: "Townhouse",
-    monthlyBudget: "$350-500",
-    bio: "Empty nester with extra space in my North Shore townhouse. I enjoy cooking, wine tasting, and hosting book club meetings. Looking for someone who appreciates good conversation!",
-    lifestyle: ["Non-smoker", "Social drinker", "Love cooking", "Moderately social", "Guests welcome"],
-    image: "/placeholder.svg?height=200&width=200",
-    verified: true,
-    pets: "ok-with-pets",
-    petOwner: false,
-    smoking: "non-smoker",
-    drinking: "social-drinker",
-    socialLevel: "moderately-social",
-    workStatus: "retired",
-    morningPerson: "moderate-schedule",
-    cookingStyle: "love-cooking",
-    tvWatching: "occasional-viewer",
-    cleanlinessLevel: "moderately-clean",
-    guestPolicy: "guests-welcome",
-  },
-  {
-    id: 6,
-    name: "Barbara Johnson",
-    email: "barbara@example.com",
-    age: "54",
-    location: "Nelson, Tasman",
-    housingStatus: "looking-for-space",
-    monthlyBudget: "$300-400",
-    bio: "Freelance writer looking for a creative, inspiring environment in Nelson. I work from home and appreciate quiet spaces. Love cats, yoga, and organic gardening.",
-    lifestyle: ["Non-smoker", "Occasional drinker", "Pet owner", "Moderate schedule", "Quiet"],
-    image: "/placeholder.svg?height=200&width=200",
-    verified: true,
-    pets: "love-pets",
-    petOwner: true,
-    smoking: "non-smoker",
-    drinking: "occasional-drinker",
-    socialLevel: "quiet-homebody",
-    workStatus: "freelance",
-    morningPerson: "moderate-schedule",
-    cookingStyle: "basic-cooking",
-    tvWatching: "rarely-watch",
-    cleanlinessLevel: "moderately-clean",
-    guestPolicy: "rare-guests",
-  },
-]
+type ApiMe = { user: UserProfile };
+type ApiUsers = { profiles: UserProfile[] };
 
+const NZ_REGIONS = [
+  "Northland","Auckland","Waikato","Bay of Plenty","Gisborne","Hawke's Bay","Taranaki",
+  "Manawatū-Whanganui","Wellington","Tasman","Nelson","Marlborough","West Coast",
+  "Canterbury","Otago","Southland","Chatham Islands",
+];
 
-// Mock current user for matching calculations
-const currentUser: UserProfile = {
-  id: 0,
-  name: "Current User",
-  email: "currentuser@example.com",
-  age: "58",
-  location: "Napier , Hawke's Bay",
-  housingStatus: "looking-for-space",
-  monthlyBudget: "800-1200",
-  pets: "love-pets",
-  petOwner: true,
-  smoking: "non-smoker",
-  drinking: "social-drinker",
-  socialLevel: "moderately-social",
-  workStatus: "retired",
-  morningPerson: "early-bird",
-  cookingStyle: "love-cooking",
-  tvWatching: "occasional-viewer",
-  cleanlinessLevel: "moderately-clean",
-  guestPolicy: "occasional-guests",
+// ⚠️ Canonical token getter: prefer id_token, then idToken. If both exist and differ,
+// normalize them to the chosen one so future reads are consistent.
+function getIdToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const underscore = localStorage.getItem("id_token");
+  const camel = localStorage.getItem("idToken");
+
+  // Prefer underscore key
+  const chosen = underscore || camel || null;
+
+  // If both exist and differ, normalize both to the chosen value
+  if (chosen && underscore !== camel) {
+    try {
+      localStorage.setItem("id_token", chosen);
+      localStorage.setItem("idToken", chosen);
+      // Optional: you can also normalize access/refresh here if needed
+      // console.log("[token] normalized id_token and idToken to same value");
+    } catch {}
+  }
+
+  return chosen;
 }
 
+// e.g. "Napier, Hawke's Bay" -> "hawke's bay"
+function extractRegion(value?: string): string {
+  if (!value) return "";
+  const parts = value.split(",").map((s) => s.trim());
+  return (parts[parts.length - 1] || "").toLowerCase();
+}
 
 function parseBudgetRange(range: string): [number, number] {
-  const match = range.match(/\$?(\d+)[^\d]+(\d+)/);
-  if (!match) return [0, Infinity];
+  const match = range?.match(/\$?(\d+)[^\d]+(\d+)/);
+  if (!match) return [0, Number.POSITIVE_INFINITY];
   return [parseInt(match[1]), parseInt(match[2])];
 }
 
-export default function BrowseProfiles() {
+const BUILD_STAMP = "browse:debug:2025-08-24T18:25Z";
+
+export default function BrowsePage() {
   const authLoading = useAuthRedirect();
 
+  const [me, setMe] = useState<UserProfile | null>(null);
+  const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [profilesLoading, setProfilesLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [selectedMatch, setSelectedMatch] = useState<{
+    profile: UserProfile;
+    matchScore: MatchScore;
+  } | null>(null);
+
+  // Filters
   const [searchTerm, setSearchTerm] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
-  const [housingFilter, setHousingFilter] = useState("");
-  const [minBudget, setMinBudget] = useState("");
-  const [maxBudget, setMaxBudget] = useState("");
-  const [selectedMatch, setSelectedMatch] = useState<{ profile: UserProfile; matchScore: MatchScore } | null>(null);
+  const [locationFilter, setLocationFilter] = useState("all");
+  const [housingFilter, setHousingFilter] = useState("all");
+  const [minBudget, setMinBudget] = useState("any");
+  const [maxBudget, setMaxBudget] = useState("any");
 
-  if (authLoading) {
-    return <div>Loading...</div>;
-  }
+  // Debug state
+  const [debugInfo, setDebugInfo] = useState<{
+    me?: UserProfile | null;
+    mineInAll?: UserProfile | null;
+    count?: number;
+  }>({});
 
-  const profilesWithMatches = profiles.map((profile) => {
-    const matchScore = calculateMatchScore(currentUser, profile);
-    return { ...profile, matchScore };
-  });
+  useEffect(() => {
+    let cancelled = false;
 
-  const filteredProfiles = profilesWithMatches
-    .filter((profile) => {
+    async function load() {
+      try {
+        setProfilesLoading(true);
+        setError(null);
+
+        console.log("[BUILD]", BUILD_STAMP, "location:", window.location.pathname);
+
+        const token = getIdToken();
+        if (!token) {
+          setError("Please log in first (idToken not found).");
+          setProfiles([]);
+          setMe(null);
+          return;
+        }
+
+        // 1) Fetch *my* profile (source of truth for the card)
+        const meRes = await fetch("/api/users/me", {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        });
+        const meJson: ApiMe = await meRes.json();
+        if (!meRes.ok) throw new Error((meJson as any)?.error || "Failed to fetch current user.");
+        const myProfile = meJson.user; // strongly consistent
+
+        console.log("[/api/users/me] userID:", myProfile.userID, "fullName:", myProfile.fullName, "email:", myProfile.email);
+
+        // 2) Fetch all profiles (used *only* for matches)
+        const allRes = await fetch("/api/users", { cache: "no-store" });
+        const allJson: ApiUsers = await allRes.json();
+        if (!allRes.ok) throw new Error((allJson as any)?.error || "Failed to fetch profiles.");
+
+        const mineInAll = (allJson.profiles ?? []).find((p) => p.userID === myProfile.userID) || null;
+        console.log("[/api/users] total:", (allJson.profiles ?? []).length, "mineInAll:", mineInAll?.fullName);
+
+        // 3) Exclude myself by userID (avoid relying on email)
+        const others = (allJson.profiles ?? []).filter((p) => p.userID !== myProfile.userID);
+
+        if (!cancelled) {
+          setMe(myProfile);
+          setProfiles(others);
+          setDebugInfo({ me: myProfile, mineInAll, count: (allJson.profiles ?? []).length });
+        }
+      } catch (e: any) {
+        if (!cancelled) {
+          console.error("[/browse] load error:", e);
+          setError(e?.message || "Something went wrong.");
+          setMe(null);
+          setProfiles([]);
+          setDebugInfo({});
+        }
+      } finally {
+        if (!cancelled) setProfilesLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const profilesWithMatches = useMemo(() => {
+    if (!me) return [];
+    return profiles
+      .map((profile) => ({
+        ...profile,
+        matchScore: calculateMatchScore(me, profile),
+      }))
+      .sort((a, b) => b.matchScore.overallScore - a.matchScore.overallScore);
+  }, [me, profiles]);
+
+  const filteredProfiles = useMemo(() => {
+    const selectedRegion = locationFilter.toLowerCase();
+
+    return profilesWithMatches.filter((profile) => {
       const matchesSearch =
-        profile.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        profile.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (profile.bio?.toLowerCase() ?? "").includes(searchTerm.toLowerCase());
 
-      const matchesLocation = locationFilter === "all" || profile.location.includes(locationFilter);
+      const profRegion = extractRegion(profile.region);
+      const matchesLocation =
+        locationFilter === "all" ||
+        profRegion === selectedRegion ||
+        (profile.region || "").toLowerCase().includes(selectedRegion);
 
-      const matchesHousing = !housingFilter || profile.housingStatus === housingFilter;
+      const matchesHousing =
+        housingFilter === "all" || profile.housingStatus === housingFilter;
 
-      const profileBudgetRange = parseBudgetRange(profile.monthlyBudget);
-      const min = minBudget ? parseInt(minBudget) : 0;
-      const max = maxBudget ? parseInt(maxBudget) : Infinity;
-
-      const matchesBudget = profileBudgetRange[1] >= min && profileBudgetRange[0] <= max;
+      const [minRange, maxRange] = parseBudgetRange(profile.monthlyBudget || "");
+      const min = minBudget !== "any" ? parseInt(minBudget) : 0;
+      const max = maxBudget !== "any" ? parseInt(maxBudget) : Number.POSITIVE_INFINITY;
+      const matchesBudget = maxRange >= min && minRange <= max;
 
       return matchesSearch && matchesLocation && matchesHousing && matchesBudget;
-    })
-    .sort((a, b) => b.matchScore.overallScore - a.matchScore.overallScore);
+    });
+  }, [profilesWithMatches, searchTerm, locationFilter, housingFilter, minBudget, maxBudget]);
+
+  if (authLoading || profilesLoading) return <div>Loading profiles...</div>;
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-12">
+          <Card className="border-destructive/40">
+            <CardHeader>
+              <CardTitle className="text-destructive">Unable to load matches</CardTitle>
+              <CardDescription>{error}</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-           {/* Header */}
-      <header className="border-b bg-white sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Home className="h-8 w-8 text-rose-600" />
-            <h1 className="text-2xl font-bold text-gray-900">ShareSpace</h1>
-          </Link>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" asChild>
-              <Link href="/profile/create">Create Profile</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/messages">Messages</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
-{/* Home Image Section */}
-<section className="px-4">
-  <div className="container mx-auto max-w-5xl">
-    <img
-      src="/Browse.png"
-      alt="Women laughing and enjoying wine together"
-      className="rounded-xl shadow-lg w-full object-cover"
-    />
-  </div>
-</section>
-
       <div className="container mx-auto px-4 py-8">
-        {/* Search and Filters */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5" />
-              Find Your Perfect Match
-            </CardTitle>
-            <CardDescription>Browse profiles of women looking for houseshare arrangements</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="lg:col-span-2">
-                <Input
-                  placeholder="Search by name or interests..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-<Select value={locationFilter} onValueChange={setLocationFilter}>
-  <SelectTrigger>
-    <SelectValue placeholder="Location" />
-  </SelectTrigger>
-  <SelectContent>
-<SelectItem value="all">All Locations</SelectItem>
-    <SelectItem value="Napier">Napier, Hawke's Bay</SelectItem>
-    <SelectItem value="Tauranga">Tauranga, Bay of Plenty</SelectItem>
-    <SelectItem value="Wellington">Wellington Central</SelectItem>
-    <SelectItem value="Timaru">Timaru, Canterbury</SelectItem>
-    <SelectItem value="Auckland">Auckland, North Shore</SelectItem>
-    <SelectItem value="Nelson">Nelson, Tasman</SelectItem>
-  </SelectContent>
-</Select>
-<Select value={minBudget} onValueChange={setMinBudget}>
-  <SelectTrigger>
-    <SelectValue placeholder="Min Budget" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="All">Any</SelectItem>
-    <SelectItem value="200">200</SelectItem>
-    <SelectItem value="250">250</SelectItem>
-    <SelectItem value="300">300</SelectItem>
-    <SelectItem value="350">350</SelectItem>
-    <SelectItem value="400">400</SelectItem>
-  </SelectContent>
-</Select>
 
-<Select value={maxBudget} onValueChange={setMaxBudget}>
-  <SelectTrigger>
-    <SelectValue placeholder="Max Budget" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="All">Any</SelectItem>
-    <SelectItem value="300">300</SelectItem>
-    <SelectItem value="350">350</SelectItem>
-    <SelectItem value="400">400</SelectItem>
-    <SelectItem value="450">450</SelectItem>
-    <SelectItem value="500">500</SelectItem>
-    <SelectItem value="600">600</SelectItem>
-    <SelectItem value="700">700</SelectItem>
-  </SelectContent>
-</Select>              
-              <Select value={housingFilter} onValueChange={setHousingFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Housing Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="has-space">Has Space</SelectItem>
-                  <SelectItem value="looking-for-space">Looking for Space</SelectItem>
-                </SelectContent>
-              </Select>
-              
-            </div>
+        {/* --- DEBUG PANEL (temporary) --- */}
+        <details className="mb-4 rounded-md border p-3 bg-white/70">
+          <summary className="cursor-pointer text-sm font-medium">Debug (build {BUILD_STAMP})</summary>
+          <pre className="text-xs overflow-auto mt-2">
+{JSON.stringify(
+  {
+    me: debugInfo.me && {
+      userID: debugInfo.me.userID,
+      fullName: debugInfo.me.fullName,
+      email: debugInfo.me.email,
+    },
+    mineInAll: debugInfo.mineInAll && {
+      userID: debugInfo.mineInAll.userID,
+      fullName: debugInfo.mineInAll.fullName,
+      email: debugInfo.mineInAll.email,
+    },
+    totalProfilesFromAll: debugInfo.count,
+  },
+  null,
+  2
+)}
+          </pre>
+        </details>
+        {/* --- END DEBUG PANEL --- */}
+
+        {/* Current user summary (from /api/users/me only) */}
+        {me && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Your Profile</CardTitle>
+              <CardDescription>
+                Region: {me.region || "—"} · Budget: {me.monthlyBudget || "—"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center gap-4">
+              <Avatar>
+                <AvatarImage src={me.profileImage || "/placeholder.svg"} />
+                <AvatarFallback>{me.fullName?.charAt(0) || "?"}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <div className="font-medium">{me.fullName || "No name yet"}</div>
+                <div className="text-sm text-muted-foreground line-clamp-2">
+                  {me.bio || "No bio yet."}
+                </div>
+              </div>
+              <Button asChild variant="outline">
+                <Link href="/profile/create">{me.fullName ? "Edit Profile" : "Create Profile"}</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Filters */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Find Your Match</CardTitle>
+            <CardDescription>Browse house share profiles with live matching</CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <Input
+              placeholder="Search by name or bio..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Select value={locationFilter} onValueChange={setLocationFilter}>
+              <SelectTrigger><SelectValue placeholder="Region" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Regions</SelectItem>
+                {NZ_REGIONS.map((r) => (
+                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={minBudget} onValueChange={setMinBudget}>
+              <SelectTrigger><SelectValue placeholder="Min Budget" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any</SelectItem>
+                <SelectItem value="200">200</SelectItem>
+                <SelectItem value="400">400</SelectItem>
+                <SelectItem value="800">800</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={maxBudget} onValueChange={setMaxBudget}>
+              <SelectTrigger><SelectValue placeholder="Max Budget" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any</SelectItem>
+                <SelectItem value="800">800</SelectItem>
+                <SelectItem value="1200">1200</SelectItem>
+                <SelectItem value="1600">1600</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={housingFilter} onValueChange={setHousingFilter}>
+              <SelectTrigger><SelectValue placeholder="Housing Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Housing</SelectItem>
+                <SelectItem value="has-space">Has Space</SelectItem>
+                <SelectItem value="looking-for-space">Looking for Space</SelectItem>
+              </SelectContent>
+            </Select>
           </CardContent>
         </Card>
 
-        {/* Results */}
-        <div className="mb-6">
-          <p className="text-gray-600">
-            Showing {filteredProfiles.length} of {profiles.length} profiles
-          </p>
-        </div>
-
-        {/* Profile Grid */}
+        {/* Matches */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProfiles.map((profile) => (
-            <Card key={profile.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-4">
-                <div className="flex items-start gap-4">
-                  <Avatar className="h-16 w-16">
-                    <AvatarImage src={profile.image || "/placeholder.svg"} alt={profile.name} />
-                    <AvatarFallback>
-                      {profile.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
-                    </AvatarFallback>
+            <Card key={profile.userID} className="hover:shadow-lg">
+              <CardHeader>
+                <div className="flex gap-4 items-center">
+                  <Avatar>
+                    <AvatarImage src={profile.profileImage || "/placeholder.svg"} />
+                    <AvatarFallback>{profile.fullName?.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg">{profile.name}</CardTitle>
-                      {profile.verified && (
-                        <Badge variant="secondary" className="text-xs">
-                          Verified
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600">Age {profile.age}</p>
-                    <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-                      <MapPin className="h-3 w-3" />
-                      {profile.location}
-                    </div>
-                    {/* Match Score */}
-                    <div className="flex items-center gap-2 mt-2">
-                      <div className={`text-sm font-semibold ${getMatchColor(profile.matchScore.overallScore)}`}>
-                        {profile.matchScore.overallScore}% Match
-                      </div>
-                      <Badge variant="outline" className="text-xs">
-                        {getMatchLabel(profile.matchScore.overallScore)}
-                      </Badge>
-                    </div>
+                  <div>
+                    <CardTitle>{profile.fullName}</CardTitle>
+                    <p className="text-sm text-gray-600">{profile.region}</p>
+                    <p className="text-sm">{profile.monthlyBudget}</p>
                   </div>
                 </div>
               </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-700 mb-2 line-clamp-3">{profile.bio}</p>
 
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Badge variant={profile.housingStatus === "has-space" ? "default" : "outline"}>
-                    {profile.housingStatus === "has-space" ? "Has Space" : "Looking for Space"}
-                  </Badge>
-                  {profile.propertyType && <Badge variant="outline">{profile.propertyType}</Badge>}
-                  <Badge variant="outline">{profile.monthlyBudget}</Badge>
-                </div>
+                <p className="text-xs mb-2">
+                  {profile.matchScore.overallScore}% Match — {getMatchLabel(profile.matchScore.overallScore)}
+                </p>
 
-                <p className="text-sm text-gray-700 line-clamp-3">{profile.bio}</p>
-
-                {/* Match Strengths */}
-                {profile.matchScore.strengths.length > 0 && (
-                  <div className="text-xs">
-                    <span className="text-green-600 font-medium">Strengths: </span>
-                    <span className="text-gray-600">{profile.matchScore.strengths.slice(0, 2).join(", ")}</span>
-                    {profile.matchScore.strengths.length > 2 && (
-                      <span className="text-gray-500"> +{profile.matchScore.strengths.length - 2} more</span>
-                    )}
-                  </div>
-                )}
-
-                {/* Deal Breakers Warning */}
-                {profile.matchScore.dealBreakers.length > 0 && (
-                  <div className="text-xs">
-                    <span className="text-red-600 font-medium">Considerations: </span>
-                    <span className="text-gray-600">{profile.matchScore.dealBreakers[0]}</span>
-                    {profile.matchScore.dealBreakers.length > 1 && (
-                      <span className="text-gray-500"> +{profile.matchScore.dealBreakers.length - 1} more</span>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex flex-wrap gap-1">
-                  {profile.lifestyle?.slice(0, 3).map((trait, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {trait}
-                    </Badge>
+                <div className="flex gap-2 mb-3">
+                  {profile.matchScore.strengths.slice(0, 2).map((s, idx) => (
+                    <Badge key={idx} variant="secondary" className="text-xs">{s}</Badge>
                   ))}
-{Array.isArray(profile.lifestyle) && profile.lifestyle.length > 3 && (
-                    <Badge variant="secondary" className="text-xs">
-+{(profile.lifestyle?.length ?? 0) - 3} more
-                    </Badge>
-                  )}
                 </div>
 
-                <div className="flex gap-2 pt-2">
-  <Link href={`/messages?recipient=${encodeURIComponent(profile.email)}`} className="flex-1">
-  <Button size="sm" className="w-full">
-    <MessageCircle className="h-4 w-4 mr-1" />
-    Message
-  </Button>
-</Link>
-
+                <div className="flex items-center gap-2">
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="text-xs"
-                    onClick={() => setSelectedMatch({ profile, matchScore: profile.matchScore })}
+                    className="flex-1"
+                    onClick={() =>
+                      setSelectedMatch({
+                        profile,
+                        matchScore: profile.matchScore,
+                      })
+                    }
                   >
                     View Match Details
                   </Button>
+
+                  {/* Link uses ?recipient= to match your messages page */}
+                  <Link href={`/messages?recipient=${encodeURIComponent(profile.userID)}`} className="shrink-0">
+                    <Button size="sm" variant="outline">
+                      Message
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {filteredProfiles.length === 0 && (
-          <Card className="text-center py-12">
-            <CardContent>
-              <Filter className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No profiles found</h3>
-              <p className="text-gray-600 mb-4">Try adjusting your search criteria or filters to find more matches.</p>
-              <Button
-            onClick={() => {
-  setSearchTerm("")
-  setLocationFilter("")
-  setHousingFilter("")
-  setMinBudget("")
-  setMaxBudget("")
-}}
-
-              >
-                Clear Filters
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Match Details Modal */}
+        {/* Modal */}
         {selectedMatch && (
           <MatchDetailsModal
             isOpen={!!selectedMatch}
             onClose={() => setSelectedMatch(null)}
             matchScore={selectedMatch.matchScore}
-            profileName={selectedMatch.profile.name}
+            profileName={selectedMatch.profile.fullName}
+            bio={selectedMatch.profile.bio}
+            region={selectedMatch.profile.region}
+            monthlyBudget={selectedMatch.profile.monthlyBudget}
+            housingStatus={selectedMatch.profile.housingStatus as any}
+            userID={selectedMatch.profile.userID}
           />
         )}
-    </div>
+      </div>
     </div>
   );
 }
