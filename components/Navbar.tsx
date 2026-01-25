@@ -1,51 +1,69 @@
 "use client";
 
 import Link from "next/link";
-import {useEffect, useState} from "react";
+import {useEffect,useCallback,useState} from "react";
 import {usePathname} from "next/navigation";
 import {Home} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {NavbarAuthButtons} from "@/components/navbar-auth-buttons";
 import {getIdToken} from "@/lib/auth";
 
-type MeResponse = {
-  user?: {
-    userID?: string;
-    email?: string;
-    fullName?: string;
+type MeResponse={
+  user?:{
+    userID?:string;
+    email?:string;
+    fullName?:string;
   };
 };
 
-export function Navbar() {
-  const [fullName, setFullName] = useState<string | null>(null);
-  const pathname = usePathname();
+export function Navbar(){
+  const [fullName,setFullName]=useState<string|null>(null);
+  const pathname=usePathname();
 
-  useEffect(() => {
-    const token = getIdToken();
-    if (!token) {
+  const loadMe=useCallback(async ()=>{
+    const token=getIdToken();
+    if(!token){
       setFullName(null);
       return;
     }
 
-    (async () => {
-      try {
-        const res = await fetch("/api/users/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          cache: "no-store",
-        });
-        if (!res.ok) {
-          setFullName(null);
-          return;
-        }
-        const data: MeResponse = await res.json();
-        setFullName(data?.user?.fullName ?? null);
-      } catch {
+    try{
+      const res=await fetch("/api/users/me",{
+        headers:{Authorization:`Bearer ${token}`},
+        cache:"no-store",
+      });
+
+      if(!res.ok){
         setFullName(null);
+        return;
       }
-    })();
-  }, [pathname]);
+
+      const data:MeResponse=await res.json();
+      setFullName(data?.user?.fullName??null);
+    }catch{
+      setFullName(null);
+    }
+  },[]);
+
+  useEffect(()=>{
+    void loadMe();
+
+    const onAuth=()=>{
+      void loadMe();
+    };
+
+    window.addEventListener("sharespace-auth",onAuth);
+    window.addEventListener("storage",onAuth);
+
+    return ()=>{
+      window.removeEventListener("sharespace-auth",onAuth);
+      window.removeEventListener("storage",onAuth);
+    };
+  },[loadMe]);
+
+  useEffect(()=>{
+    void loadMe();
+  },[pathname,loadMe]);
 
   return (
     <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
@@ -56,7 +74,6 @@ export function Navbar() {
             ShareSpace
           </Link>
         </div>
-
 
         <nav className="hidden md:flex items-center gap-6">
           <Link href="/browse" className="text-gray-600 hover:text-rose-600">
@@ -73,13 +90,12 @@ export function Navbar() {
           </Link>
         </nav>
 
-
         <div className="flex items-center gap-3">
-          {fullName ? (
+          {fullName?(
             <span className="hidden sm:inline text-sm text-gray-700">
               Hello, <span className="font-semibold">{fullName}</span>
             </span>
-          ) : null}
+          ):null}
           <NavbarAuthButtons />
           <Button asChild>
             <Link href="/profile/create">Get Started</Link>

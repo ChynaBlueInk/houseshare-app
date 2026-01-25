@@ -30,8 +30,8 @@ export default function SignInPage() {
       AuthFlow: "USER_PASSWORD_AUTH",
       ClientId: CLIENT_ID,
       AuthParameters: {
-        USERNAME: email,
-        PASSWORD: password,
+USERNAME: email.trim().toLowerCase(),
+PASSWORD: password.trim(),
       },
     });
 

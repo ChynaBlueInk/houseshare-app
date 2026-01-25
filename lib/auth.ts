@@ -1,36 +1,63 @@
 // lib/auth.ts
-export function getIdToken(): string | null {
-  if (typeof window === "undefined") return null;
+const AUTH_EVENT="sharespace-auth"
 
-  const underscore = localStorage.getItem("id_token");
-  const camel = localStorage.getItem("idToken");
-  const chosen = underscore || camel || null;
+export function authNotify(){
+  if(typeof window==="undefined")return
+  window.dispatchEvent(new Event(AUTH_EVENT))
+}
+
+export function getIdToken():string|null{
+  if(typeof window==="undefined")return null
+
+  const underscore=localStorage.getItem("id_token")
+  const camel=localStorage.getItem("idToken")
+  const chosen=underscore||camel||null
 
   // Normalise so both keys match if they differ
-  if (chosen && underscore !== camel) {
-    try {
-      localStorage.setItem("id_token", chosen);
-      localStorage.setItem("idToken", chosen);
-    } catch {}
+  if(chosen&&underscore!==camel){
+    try{
+      localStorage.setItem("id_token",chosen)
+      localStorage.setItem("idToken",chosen)
+    }catch{}
   }
 
-  return chosen;
+  return chosen
 }
 
-export function getCurrentUser() {
-  const token = getIdToken();
-  return !!token;
+export function setTokens(opts:{id?:string|null;access?:string|null;refresh?:string|null}){
+  if(typeof window==="undefined")return
+
+  const {id,access,refresh}=opts
+
+  try{
+    if(id){
+      localStorage.setItem("id_token",id)
+      localStorage.setItem("idToken",id)
+    }else if(id===null){
+      localStorage.removeItem("id_token")
+      localStorage.removeItem("idToken")
+    }
+
+    if(access){
+      localStorage.setItem("access_token",access)
+    }else if(access===null){
+      localStorage.removeItem("access_token")
+    }
+
+    if(refresh){
+      localStorage.setItem("refresh_token",refresh)
+    }else if(refresh===null){
+      localStorage.removeItem("refresh_token")
+    }
+  }catch{}
+
+  authNotify()
 }
 
-export function signOut() {
-  try {
-    localStorage.removeItem("id_token");
-    localStorage.removeItem("idToken");
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-  } catch {}
+export function getCurrentUser(){
+  return !!getIdToken()
+}
 
-  if (typeof window !== "undefined") {
-    window.location.href = "/";
-  }
+export function signOut(){
+  setTokens({id:null,access:null,refresh:null})
 }
