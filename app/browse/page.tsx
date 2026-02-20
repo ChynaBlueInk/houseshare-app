@@ -46,7 +46,23 @@ function parseBudgetRange(range: string): [number, number] {
   return [parseInt(match[1]), parseInt(match[2])];
 }
 
-const BUILD_STAMP = "browse:debug:2025-08-24T18:25Z";
+// Robust "same user" check (handles thin/messy data)
+function isSameUser(a?: UserProfile | null, b?: UserProfile | null): boolean {
+  if (!a || !b) return false;
+
+  const aId = (a.userID || "").trim();
+  const bId = (b.userID || "").trim();
+  if (aId && bId && aId === bId) return true;
+
+  const aEmail = (a.email || "").trim().toLowerCase();
+  const bEmail = (b.email || "").trim().toLowerCase();
+  if (aEmail && bEmail && aEmail === bEmail) return true;
+
+  return false;
+}
+
+const BUILD_STAMP = "browse:fix-self-card:2026-02-20";
+const SHOW_DEBUG = false;
 
 export default function BrowsePage() {
   const authLoading = useAuthRedirect();
@@ -73,6 +89,7 @@ export default function BrowsePage() {
     me?: UserProfile | null;
     mineInAll?: UserProfile | null;
     count?: number;
+    excludedCount?: number;
   }>({});
 
   useEffect(() => {
@@ -83,8 +100,6 @@ export default function BrowsePage() {
         setProfilesLoading(true);
         setError(null);
 
-        console.log("[BUILD]", BUILD_STAMP, "location:", window.location.pathname);
-
         const token = getIdToken();
         if (!token) {
           setError("Please log in first (idToken not found).");
@@ -93,7 +108,7 @@ export default function BrowsePage() {
           return;
         }
 
-        // 1) Fetch *my* profile (source of truth for the card)
+        // 1) Fetch *my* profile (source of truth for the top card)
         const meRes = await fetch("/api/users/me", {
           headers: {Authorization: `Bearer ${token}`},
           cache: "no-store",
@@ -102,24 +117,35 @@ export default function BrowsePage() {
         if (!meRes.ok) throw new Error((meJson as any)?.error || "Failed to fetch current user.");
         const myProfile = meJson.user;
 
-        console.log("[/api/users/me] userID:", myProfile.userID, "fullName:", myProfile.fullName, "email:", myProfile.email);
-
-        // 2) Fetch all profiles (used *only* for matches)
+        // 2) Fetch all profiles (matches list)
         const allRes = await fetch("/api/users", {cache: "no-store"});
         const allJson: ApiUsers = await allRes.json();
         if (!allRes.ok) throw new Error((allJson as any)?.error || "Failed to fetch profiles.");
 
-        const mineInAll =
-          (allJson.profiles ?? []).find((p) => p.userID === myProfile.userID) || null;
-        console.log("[/api/users] total:", (allJson.profiles ?? []).length, "mineInAll:", mineInAll?.fullName);
+        const allProfiles = allJson.profiles ?? [];
 
-        // 3) Exclude myself by userID
-        const others = (allJson.profiles ?? []).filter((p) => p.userID !== myProfile.userID);
+        // 3) Find my record inside /api/users (for debugging + sanity checks)
+        const mineInAll =
+          allProfiles.find((p) => isSameUser(p, myProfile)) ||
+          allProfiles.find((p) => (p.userID || "").trim() === (myProfile.userID || "").trim()) ||
+          allProfiles.find((p) => (p.email || "").trim().toLowerCase() === (myProfile.email || "").trim().toLowerCase()) ||
+          null;
+
+        // 4) Exclude myself (robustly) so I never appear in matches
+        const othersRaw = allProfiles.filter((p) => !isSameUser(p, myProfile));
+
+        // Extra safety: also exclude by direct userID match if present
+        const myId = (myProfile.userID || "").trim();
+        const others = myId
+          ? othersRaw.filter((p) => ((p.userID || "").trim() !== myId))
+          : othersRaw;
+
+        const excludedCount = allProfiles.length - others.length;
 
         if (!cancelled) {
           setMe(myProfile);
           setProfiles(others);
-          setDebugInfo({me: myProfile, mineInAll, count: (allJson.profiles ?? []).length});
+          setDebugInfo({me: myProfile, mineInAll, count: allProfiles.length, excludedCount});
         }
       } catch (e: any) {
         if (!cancelled) {
@@ -143,6 +169,7 @@ export default function BrowsePage() {
   const profilesWithMatches = useMemo(() => {
     if (!me) return [];
     return profiles
+      .filter((p) => !isSameUser(p, me)) // belt + braces
       .map((profile) => ({
         ...profile,
         matchScore: calculateMatchScore(me, profile),
@@ -196,12 +223,12 @@ export default function BrowsePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        {/* --- DEBUG PANEL (temporary) --- */}
-        <details className="mb-4 rounded-md border p-3 bg-white/70">
-          <summary className="cursor-pointer text-sm font-medium">
-            Debug (build {BUILD_STAMP})
-          </summary>
-          <pre className="text-xs overflow-auto mt-2">
+        {SHOW_DEBUG && (
+          <details className="mb-4 rounded-md border p-3 bg-white/70">
+            <summary className="cursor-pointer text-sm font-medium">
+              Debug (build {BUILD_STAMP})
+            </summary>
+            <pre className="text-xs overflow-auto mt-2">
 {JSON.stringify(
   {
     me: debugInfo.me && {
@@ -215,22 +242,33 @@ export default function BrowsePage() {
       email: debugInfo.mineInAll.email,
     },
     totalProfilesFromAll: debugInfo.count,
+    excludedCount: debugInfo.excludedCount,
   },
   null,
   2
 )}
-          </pre>
-        </details>
-        {/* --- END DEBUG PANEL --- */}
+            </pre>
+          </details>
+        )}
 
-        {/* Current user summary (from /api/users/me only) */}
+        {/* Your profile pinned at the top */}
         {me && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Your Profile</CardTitle>
-              <CardDescription>
-                Region: {me.region || "—"} · Budget: {me.monthlyBudget || "—"}
-              </CardDescription>
+          <Card className="mb-6 border-blue-200 bg-blue-50/40">
+            <CardHeader className="flex flex-row items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <CardTitle>Your Profile</CardTitle>
+                  <Badge variant="secondary" className="text-xs">You</Badge>
+                </div>
+                <CardDescription>
+                  Region: {me.region || "—"} · Budget: {me.monthlyBudget || "—"}
+                </CardDescription>
+              </div>
+              <Button asChild variant="outline">
+                <Link href="/profile/create">
+                  {me.fullName ? "Edit Profile" : "Create Profile"}
+                </Link>
+              </Button>
             </CardHeader>
             <CardContent className="flex items-center gap-4">
               <Avatar>
@@ -242,12 +280,12 @@ export default function BrowsePage() {
                 <div className="text-sm text-muted-foreground line-clamp-2">
                   {me.bio || "No bio yet."}
                 </div>
+                <div className="mt-2">
+                  <Link href={`/profile/${encodeURIComponent(me.userID || "")}`} className="text-sm underline">
+                    View your public profile
+                  </Link>
+                </div>
               </div>
-              <Button asChild variant="outline">
-                <Link href="/profile/create">
-                  {me.fullName ? "Edit Profile" : "Create Profile"}
-                </Link>
-              </Button>
             </CardContent>
           </Card>
         )}
@@ -302,7 +340,17 @@ export default function BrowsePage() {
           </CardContent>
         </Card>
 
-        {/* Matches */}
+        {/* Matches heading */}
+        <div className="mb-4 flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold">Matches</h2>
+            <p className="text-sm text-muted-foreground">
+              Showing {filteredProfiles.length} profile{filteredProfiles.length === 1 ? "" : "s"} (excluding you)
+            </p>
+          </div>
+        </div>
+
+        {/* Matches grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProfiles.map((profile) => (
             <Card key={profile.userID} className="hover:shadow-lg">
@@ -346,7 +394,6 @@ export default function BrowsePage() {
                     View Match Details
                   </Button>
 
-                  {/* Pass both ID (for backend) and name (for display) */}
                   <Link
                     href={`/messages?recipient=${encodeURIComponent(profile.userID)}&recipientName=${encodeURIComponent(profile.fullName || "")}`}
                     className="shrink-0"
